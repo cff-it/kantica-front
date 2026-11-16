@@ -14,8 +14,9 @@ permissions:
   contents: read
 
 jobs:
-  lint-build:
-    name: Lint et build
+  # Nom exigé par les règles de protection de branche : ne pas le changer.
+  build:
+    name: build
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
