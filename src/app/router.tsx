@@ -1,15 +1,23 @@
 import { createBrowserRouter, Navigate } from 'react-router';
 
 import { ComingSoon } from '@/components/common/coming-soon';
-import { LoginPage } from '@/features/auth';
+import {
+  LoginPage,
+  PendingAccountPage,
+  ProfileFormPage,
+  RegisterPage,
+} from '@/features/auth';
 import { MembersListPage } from '@/features/members';
+import { paths } from '@/lib/paths';
 
-import { RequireAuth, RequireGuest, RequireRole } from './guards';
+import {
+  RequireAuth,
+  RequireGuest,
+  RequirePending,
+  RequireRole,
+} from './guards';
 import { AppLayout } from './layouts/app-layout';
 import { AuthLayout } from './layouts/auth-layout';
-
-// Page d'accueil après connexion (premier onglet de la navigation).
-const DEFAULT_ROUTE = '/repertoire';
 
 export const router = createBrowserRouter([
   {
@@ -17,7 +25,34 @@ export const router = createBrowserRouter([
     children: [
       {
         element: <AuthLayout />,
-        children: [{ path: '/login', element: <LoginPage /> }],
+        children: [
+          { path: paths.login, element: <LoginPage /> },
+          { path: paths.register, element: <RegisterPage /> },
+        ],
+      },
+    ],
+  },
+  {
+    // Parcours d'un compte « en attente » : fiche de recensement (étape 2),
+    // puis écran d'attente de validation.
+    element: <RequirePending />,
+    children: [
+      {
+        element: <AuthLayout />,
+        children: [
+          { path: paths.registerProfile, element: <ProfileFormPage /> },
+        ],
+      },
+    ],
+  },
+  {
+    element: <RequirePending requireProfile />,
+    children: [
+      {
+        element: <AuthLayout />,
+        children: [
+          { path: paths.pendingAccount, element: <PendingAccountPage /> },
+        ],
       },
     ],
   },
@@ -27,15 +62,18 @@ export const router = createBrowserRouter([
       {
         element: <AppLayout />,
         children: [
-          { index: true, element: <Navigate to={DEFAULT_ROUTE} replace /> },
-          { path: 'repertoire', element: <ComingSoon title="Répertoire" /> },
-          { path: 'messes', element: <ComingSoon title="Messes" /> },
-          { path: 'classements', element: <ComingSoon title="Classements" /> },
+          { index: true, element: <Navigate to={paths.home} replace /> },
+          { path: paths.songs, element: <ComingSoon title="Répertoire" /> },
+          { path: paths.masses, element: <ComingSoon title="Messes" /> },
+          {
+            path: paths.rankings,
+            element: <ComingSoon title="Classements" />,
+          },
           {
             element: <RequireRole roles={['admin', 'secretaire']} />,
-            children: [{ path: 'membres', element: <MembersListPage /> }],
+            children: [{ path: paths.members, element: <MembersListPage /> }],
           },
-          { path: 'profil', element: <ComingSoon title="Profil" /> },
+          { path: paths.profile, element: <ComingSoon title="Profil" /> },
         ],
       },
     ],
