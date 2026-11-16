@@ -19,6 +19,8 @@ import {
 import { AppLayout } from './layouts/app-layout';
 import { AuthLayout } from './layouts/auth-layout';
 
+// `handle.title` : titre de la page dans l'onglet, lu par `useRouteTitle` dans
+// les layouts (« Titre - Chorale Francophone de Faravohitra »).
 export const router = createBrowserRouter([
   {
     element: <RequireGuest />,
@@ -26,8 +28,16 @@ export const router = createBrowserRouter([
       {
         element: <AuthLayout />,
         children: [
-          { path: paths.login, element: <LoginPage /> },
-          { path: paths.register, element: <RegisterPage /> },
+          {
+            path: paths.login,
+            element: <LoginPage />,
+            handle: { title: 'Connexion' },
+          },
+          {
+            path: paths.register,
+            element: <RegisterPage />,
+            handle: { title: 'Inscription' },
+          },
         ],
       },
     ],
@@ -40,7 +50,11 @@ export const router = createBrowserRouter([
       {
         element: <AuthLayout />,
         children: [
-          { path: paths.registerProfile, element: <ProfileFormPage /> },
+          {
+            path: paths.registerProfile,
+            element: <ProfileFormPage />,
+            handle: { title: 'Fiche de choriste' },
+          },
         ],
       },
     ],
@@ -51,7 +65,11 @@ export const router = createBrowserRouter([
       {
         element: <AuthLayout />,
         children: [
-          { path: paths.pendingAccount, element: <PendingAccountPage /> },
+          {
+            path: paths.pendingAccount,
+            element: <PendingAccountPage />,
+            handle: { title: 'Compte en attente' },
+          },
         ],
       },
     ],
@@ -63,17 +81,36 @@ export const router = createBrowserRouter([
         element: <AppLayout />,
         children: [
           { index: true, element: <Navigate to={paths.home} replace /> },
-          { path: paths.songs, element: <ComingSoon title="Répertoire" /> },
-          { path: paths.masses, element: <ComingSoon title="Messes" /> },
+          {
+            path: paths.songs,
+            element: <ComingSoon title="Répertoire" />,
+            handle: { title: 'Répertoire' },
+          },
+          {
+            path: paths.masses,
+            element: <ComingSoon title="Messes" />,
+            handle: { title: 'Messes' },
+          },
           {
             path: paths.rankings,
             element: <ComingSoon title="Classements" />,
+            handle: { title: 'Classements' },
           },
           {
             element: <RequireRole roles={['admin', 'secretaire']} />,
-            children: [{ path: paths.members, element: <MembersListPage /> }],
+            children: [
+              {
+                path: paths.members,
+                element: <MembersListPage />,
+                handle: { title: 'Membres' },
+              },
+            ],
           },
-          { path: paths.profile, element: <ComingSoon title="Profil" /> },
+          {
+            path: paths.profile,
+            element: <ComingSoon title="Profil" />,
+            handle: { title: 'Profil' },
+          },
         ],
       },
     ],
