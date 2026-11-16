@@ -450,9 +450,12 @@ npm run lint     # ESLint
   mobile). Les versions claire (encre à environ 6 %) et sombre (blanc à environ 5 %) sont déjà à leur
   opacité : ne pas ajouter d'opacité CSS. `watermark-gray.png` (Gris CFF `#C8C8C8`, pleine opacité) est la
   version source, pas encore utilisée.
-- **Favicon** : `public/favicon-32.png`, `favicon-192.png` et `apple-touch-icon.png` (fond blanc, car iOS
-  n'accepte pas la transparence) sont générés à partir du logo, cadré dans un carré. Les régénérer si le
-  logo change.
+- **Favicon** : `public/favicon-32.png`, `favicon-192.png` et `apple-touch-icon.png` sont générés à partir du
+  logo sur **fond blanc** (le logo reste lisible sur les onglets sombres). Les deux favicons sont des
+  **disques** (cercle complet, hors-disque transparent) ; le logo est mis à l'échelle d'après son tracé
+  bleu et rouge, les ailes grises très claires pouvant être rognées par le cercle.
+  `apple-touch-icon.png` reste carré et opaque, car iOS applique son propre arrondi et refuse la
+  transparence. Les régénérer si le logo change.
 - **Lint** : `components/ui/button.tsx` (généré par shadcn) exporte `buttonVariants` à côté de `Button`, ce
   qui déclenche `react-refresh/only-export-components`. Un `eslint-disable-next-line` est posé sur l'export
   et `eslint.config.js` reste intact (le hook `config-protection` interdit de l'assouplir). Si la CLI shadcn
