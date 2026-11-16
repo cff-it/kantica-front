@@ -1,4 +1,13 @@
+import { isAxiosError } from 'axios';
+
 import type { MemberProfile } from '@/types';
+
+// POST /auth/login répond 401 (AuthenticationException) aussi bien pour un
+// email inconnu que pour un mauvais mot de passe : le front n'a pas à les
+// distinguer, et ne doit pas le faire (on ne révèle pas quels comptes existent).
+export function isInvalidCredentialsError(error: unknown): boolean {
+  return isAxiosError(error) && error.response?.status === 401;
+}
 
 // `first_name` joint tous les prénoms (« Hanta Rasoa ») : le premier sert à
 // s'adresser à la personne.
