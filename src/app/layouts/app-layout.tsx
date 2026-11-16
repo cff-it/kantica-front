@@ -2,6 +2,7 @@ import { NavLink, Outlet } from 'react-router';
 
 import { ThemeToggle } from '@/components/common/theme-toggle';
 import { useCurrentUser } from '@/features/auth';
+import { useRouteTitle } from '@/hooks/use-route-title';
 import { hasAnyRole } from '@/lib/roles';
 import { cn } from '@/lib/utils';
 
@@ -12,6 +13,8 @@ import { NAV_ITEMS } from './nav-items';
 // en haut à droite en attendant l'écran Profil, où la maquette place le
 // réglage « Mode sombre ».
 export function AppLayout() {
+  useRouteTitle();
+
   const { data: user } = useCurrentUser();
   const items = NAV_ITEMS.filter(
     (item) => !item.roles || hasAnyRole(user, item.roles),
