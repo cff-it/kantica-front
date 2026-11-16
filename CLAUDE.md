@@ -63,13 +63,14 @@ src/
 │   ├── auth-token.ts         # Jeton Bearer : lecture, écriture, effacement (localStorage)
 │   ├── query-client.ts       # Configuration TanStack Query
 │   ├── form-errors.ts        # Mapping des erreurs 422 Laravel vers React Hook Form
+│   ├── page-title.ts         # APP_NAME et format du titre de l'onglet
 │   ├── paths.ts              # Chemins des écrans et destination d'un compte « en attente »
 │   ├── roles.ts              # hasAnyRole() : partagé par les guards et la navigation
 │   ├── voices.ts             # Les 4 voix : libellés et classes de couleur
 │   └── utils.ts              # cn(), formatage de dates
 │
 ├── assets/brand/             # Logo et filigranes (PNG transparents, voir Points d'attention)
-├── hooks/                    # Hooks génériques sans métier (useDebounce, useMediaQuery)
+├── hooks/                    # Hooks génériques sans métier (useDebounce, useMediaQuery, useRouteTitle)
 └── types/                    # Types partagés : User, Role, Voice, Paginated<T>
 ```
 
@@ -376,6 +377,16 @@ La source de vérité est `app/layouts/nav-items.ts`.
 
 Événements et Paiements sont rangés dans Profil en attendant leurs écrans. Les routes des lots ultérieurs
 affichent `<ComingSoon />` : ne pas y inventer d'interface.
+
+### Titre de l'onglet
+
+Format : « Page - Chorale Francophone de Faravohitra » (ex. « Inscription - Chorale Francophone de
+Faravohitra »). Le titre de chaque écran est déclaré **dans la table des routes**, par `handle: { title }`
+dans `app/router.tsx` ; `useRouteTitle()` (`hooks/use-route-title.ts`, appelé par `AuthLayout` et
+`AppLayout`) lit la route active et met à jour `document.title`. Une page n'a donc rien à faire ; un nouvel
+écran ajoute simplement son `handle.title`. Le nom de l'application est la constante `APP_NAME` de
+`lib/page-title.ts` : y mettre `'CFF'` pour la forme courte. Le `<title>` de `index.html` (avant le
+chargement du JS) est le nom seul.
 
 ### Composants shadcn
 

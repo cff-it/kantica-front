@@ -3,6 +3,7 @@ import { Outlet } from 'react-router';
 import { BrandMark } from '@/components/common/brand-mark';
 import { ThemeToggle } from '@/components/common/theme-toggle';
 import { Watermark } from '@/components/common/watermark';
+import { useRouteTitle } from '@/hooks/use-route-title';
 
 // Layout des écrans publics (connexion, inscription, compte en attente).
 // Mobile : une colonne, chaque écran gère son en-tête ; le filigrane est
@@ -11,6 +12,8 @@ import { Watermark } from '@/components/common/watermark';
 // centré à droite (maquettes web). Le bouton de thème est en haut à droite,
 // car ces écrans n'ont pas accès à Profil.
 export function AuthLayout() {
+  useRouteTitle();
+
   return (
     <div className="relative min-h-dvh lg:grid lg:grid-cols-2">
       <ThemeToggle className="absolute top-3 right-3 z-10" />
