@@ -10,6 +10,11 @@ export function useLogin() {
 
   return useMutation({
     mutationFn: login,
+    // Hors ligne, TanStack Query met la mutation en pause par défaut : le
+    // bouton tournerait sans fin, puis la connexion partirait seule au retour
+    // du réseau. On tente la requête quand même, pour que l'échec (réseau
+    // coupé) s'affiche tout de suite.
+    networkMode: 'always',
     onSuccess: ({ token }) => {
       setAuthToken(token);
 

@@ -1,8 +1,14 @@
 import { z } from 'zod';
 
-// Le back attend le champ `mail` (LoginRequest), pas `email`.
+// Le back attend le champ `mail` (LoginRequest), pas `email`. L'email est
+// nettoyé avant validation : l'autocomplétion des claviers mobiles ajoute
+// souvent une espace finale. Le mot de passe, lui, n'est jamais modifié.
 export const loginSchema = z.object({
-  mail: z.email('Adresse email invalide'),
+  mail: z
+    .string()
+    .trim()
+    .min(1, 'Adresse email requise')
+    .pipe(z.email('Adresse email invalide')),
   password: z.string().min(1, 'Mot de passe requis'),
 });
 
