@@ -1,0 +1,103 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+# Une nouvelle exécution annule celle en cours sur la même branche ou PR.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # Nom exigé par les règles de protection de branche : ne pas le changer.
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Récupération du code
+        uses: actions/checkout@v5
+
+      - name: Installation de Node
+        uses: actions/setup-node@v5
+        with:
+          # Même version que le Dockerfile (Vite 8 requiert Node 20.19+ ou 22.12+).
+          node-version: 24
+          cache: npm
+
+      - name: Installation des dépendances
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      # `tsc -b` puis `vite build`
+      - name: Build
+        run: npm run build
+
+  # Review automatique par Claude (pull requests seulement).
+  # Nécessite le secret de dépôt CLAUDE_CODE_OAUTH_TOKEN (comme kantica-back).
+  claude-review:
+    name: Claude review
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Ignore les push, les PR en brouillon et les PR de forks (pas de secrets).
+    if: >-
+      github.event_name == 'pull_request'
+      && !github.event.pull_request.draft
+      && github.event.pull_request.head.repo.full_name == github.repository
+
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+
+    steps:
+      - name: Récupération du code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - name: Review de la pull request
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          use_sticky_comment: true
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            Review this pull request. Write all comments in French and never
+            use em dashes or en dashes.
+            The PR branch is already checked out in the current working directory.
+            Read CLAUDE.md first: it defines the architecture (features folders,
+            api -> hooks -> components/pages flow, TanStack Query, React Hook
+            Form + Zod 4, shadcn/ui, Sanctum Bearer token) and the code style.
+
+            Focus on:
+            - bugs and edge cases (loading, error and empty states, race
+              conditions, stale cache, unhandled 401/403/422);
+            - security (XSS, dangerouslySetInnerHTML, token handling, secrets);
+            - violations of the CLAUDE.md rules: pages only assemble, no Axios
+              call outside api/, no import of another feature's internal files,
+              types mirroring Laravel Resources in snake_case, no `any`, no
+              hard-coded colors or API URLs, paths only from lib/paths.ts,
+              components/ui/ untouched;
+            - mobile-first UI (responsive, 44 px touch targets, 16 px text,
+              light and dark themes) and accessibility;
+            - performance (needless re-renders, bundle size).
+            Do not comment on formatting or rules already enforced by ESLint
+            and tsc.
+
+            Post each finding on the relevant line with
+            `mcp__github_inline_comment__create_inline_comment` (with `confirmed: true`).
+            Post a single short summary with `gh pr comment`.
+            Only post GitHub comments, do not reply with plain messages.
+          claude_args: |
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Read,Grep,Glob"
