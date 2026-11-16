@@ -41,6 +41,22 @@
   --link: #2f5dae; /* Bleu texte : liens, texte bleu */
   --brand-red: #e8231a; /* Rouge CFF : accent ponctuel */
   --brand-gray: #c8c8c8; /* Gris CFF : filigranes */
+
+  /*
+   * Statuts et voix, relevés sur les maquettes du lot 1 (inscription et
+   * compte en attente). Les valeurs du mode sombre sont dérivées.
+   */
+  --success: #2e7d5b; /* Critère satisfait */
+  --warning: #fdf4e1; /* Fond du badge « En attente de validation » */
+  --warning-foreground: #8a5a00;
+  --voice-s: #fcefd3; /* Soprano */
+  --voice-s-foreground: #85570a;
+  --voice-a: #f7e1ec; /* Alto */
+  --voice-a-foreground: #8c2f5e;
+  --voice-t: #ddf1ea; /* Ténor */
+  --voice-t-foreground: #1d6a55;
+  --voice-b: #e2e6f7; /* Basse */
+  --voice-b-foreground: #3a4a8c;
 }
 
 .dark {
@@ -68,6 +84,18 @@
   --link: #7fa6ea;
   --brand-red: #e8231a;
   --brand-gray: #c8c8c8;
+
+  --success: #5fbf93;
+  --warning: #3a2f14;
+  --warning-foreground: #f0c36b;
+  --voice-s: #3a2f14;
+  --voice-s-foreground: #f0c36b;
+  --voice-a: #3b2230;
+  --voice-a-foreground: #f0a6c7;
+  --voice-t: #1b3a31;
+  --voice-t-foreground: #7fd1b4;
+  --voice-b: #252b49;
+  --voice-b-foreground: #a9b7f0;
 }
 
 @theme inline {
@@ -97,6 +125,17 @@
   --color-link: var(--link);
   --color-brand-red: var(--brand-red);
   --color-brand-gray: var(--brand-gray);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-voice-s: var(--voice-s);
+  --color-voice-s-foreground: var(--voice-s-foreground);
+  --color-voice-a: var(--voice-a);
+  --color-voice-a-foreground: var(--voice-a-foreground);
+  --color-voice-t: var(--voice-t);
+  --color-voice-t-foreground: var(--voice-t-foreground);
+  --color-voice-b: var(--voice-b);
+  --color-voice-b-foreground: var(--voice-b-foreground);
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);

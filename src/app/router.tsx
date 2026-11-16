@@ -1,23 +1,83 @@
 import { createBrowserRouter, Navigate } from 'react-router';
 
 import { ComingSoon } from '@/components/common/coming-soon';
-import { LoginPage } from '@/features/auth';
+import {
+  ForgotPasswordPage,
+  LoginPage,
+  LogoutButton,
+  PendingAccountPage,
+  ProfileFormPage,
+  RegisterPage,
+} from '@/features/auth';
 import { MembersListPage } from '@/features/members';
+import { paths } from '@/lib/paths';
 
-import { RequireAuth, RequireGuest, RequireRole } from './guards';
+import {
+  RequireAuth,
+  RequireGuest,
+  RequirePending,
+  RequireRole,
+} from './guards';
 import { AppLayout } from './layouts/app-layout';
 import { AuthLayout } from './layouts/auth-layout';
 
-// Page d'accueil après connexion (premier onglet de la navigation).
-const DEFAULT_ROUTE = '/repertoire';
-
+// `handle.title` : titre de la page dans l'onglet, lu par `useRouteTitle` dans
+// les layouts (« Titre - Chorale Francophone de Faravohitra »).
 export const router = createBrowserRouter([
   {
     element: <RequireGuest />,
     children: [
       {
         element: <AuthLayout />,
-        children: [{ path: '/login', element: <LoginPage /> }],
+        children: [
+          {
+            path: paths.login,
+            element: <LoginPage />,
+            handle: { title: 'Connexion' },
+          },
+          {
+            path: paths.forgotPassword,
+            element: <ForgotPasswordPage />,
+            handle: { title: 'Mot de passe oublié' },
+          },
+          {
+            path: paths.register,
+            element: <RegisterPage />,
+            handle: { title: 'Inscription' },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    // Parcours d'un compte « en attente » : fiche de recensement (étape 2),
+    // puis écran d'attente de validation.
+    element: <RequirePending />,
+    children: [
+      {
+        element: <AuthLayout />,
+        children: [
+          {
+            path: paths.registerProfile,
+            element: <ProfileFormPage />,
+            handle: { title: 'Fiche de choriste' },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    element: <RequirePending requireProfile />,
+    children: [
+      {
+        element: <AuthLayout />,
+        children: [
+          {
+            path: paths.pendingAccount,
+            element: <PendingAccountPage />,
+            handle: { title: 'Compte en attente' },
+          },
+        ],
       },
     ],
   },
@@ -27,15 +87,44 @@ export const router = createBrowserRouter([
       {
         element: <AppLayout />,
         children: [
-          { index: true, element: <Navigate to={DEFAULT_ROUTE} replace /> },
-          { path: 'repertoire', element: <ComingSoon title="Répertoire" /> },
-          { path: 'messes', element: <ComingSoon title="Messes" /> },
-          { path: 'classements', element: <ComingSoon title="Classements" /> },
+          { index: true, element: <Navigate to={paths.home} replace /> },
+          {
+            path: paths.songs,
+            element: <ComingSoon title="Répertoire" />,
+            handle: { title: 'Répertoire' },
+          },
+          {
+            path: paths.masses,
+            element: <ComingSoon title="Messes" />,
+            handle: { title: 'Messes' },
+          },
+          {
+            path: paths.rankings,
+            element: <ComingSoon title="Classements" />,
+            handle: { title: 'Classements' },
+          },
           {
             element: <RequireRole roles={['admin', 'secretaire']} />,
-            children: [{ path: 'membres', element: <MembersListPage /> }],
+            children: [
+              {
+                path: paths.members,
+                element: <MembersListPage />,
+                handle: { title: 'Membres' },
+              },
+            ],
           },
-          { path: 'profil', element: <ComingSoon title="Profil" /> },
+          {
+            // Écran Profil à venir : en attendant, seul le bouton de
+            // déconnexion de la maquette (le ticket l'attend dans Profil).
+            path: paths.profile,
+            element: (
+              <>
+                <ComingSoon title="Profil" />
+                <LogoutButton />
+              </>
+            ),
+            handle: { title: 'Profil' },
+          },
         ],
       },
     ],
