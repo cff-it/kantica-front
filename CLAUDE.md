@@ -17,7 +17,8 @@
 - **Icônes** : lucide-react
 - **Notifications** : sonner, enveloppé dans `components/common/toaster.tsx`
 - **Conteneurs** : Docker, nginx non-root en production (voir la section Docker)
-- **API** : back-end Laravel `kantica-back`, authentification Laravel Sanctum en mode SPA (cookies)
+- **API** : back-end Laravel `kantica-back`, authentification Laravel Sanctum par jeton Bearer (le back
+  servira aussi une future app mobile : pas de session ni de cookies)
 
 ---
 
@@ -28,9 +29,9 @@ src/
 ├── app/                      # Démarrage de l'appli : rien de métier
 │   ├── providers.tsx         # QueryClient, ThemeProvider, Router, Toaster, handler 401
 │   ├── router.tsx            # Table des routes uniquement
-│   ├── guards.tsx            # RequireAuth, RequireGuest, RequireRole
+│   ├── guards.tsx            # RequireAuth, RequirePending, RequireGuest, RequireRole
 │   └── layouts/
-│       ├── auth-layout.tsx   # Écrans publics (connexion, inscription)
+│       ├── auth-layout.tsx   # Écrans publics et parcours « en attente » : panneau de marque (grand écran)
 │       ├── app-layout.tsx    # Écrans connectés : barre d'onglets selon le rôle
 │       └── nav-items.ts      # Onglets de navigation et rôles autorisés
 │
@@ -51,16 +52,23 @@ src/
 │
 ├── components/
 │   ├── ui/                   # Composants shadcn générés par le CLI
-│   └── common/               # Composants partagés : PageHeader, RoleGuard, ComingSoon, Toaster
-│                             # (DataTable à ajouter avec la liste des membres)
+│   └── common/               # Composants partagés : PageHeader, RoleGuard, ComingSoon, Toaster,
+│                             # FormField, PasswordField (FormField + œil afficher/masquer, à utiliser pour tout
+│                             # mot de passe), ActionButton (enveloppes de shadcn), AuthPanel, AuthHeading,
+│                             # BrandMark, Watermark, ThemeToggle, VoiceBadge (DataTable à ajouter avec la
+│                             # liste des membres)
 │
 ├── lib/
-│   ├── api-client.ts         # Instance Axios unique (credentials, XSRF, intercepteurs 401 et 419)
+│   ├── api-client.ts         # Instance Axios unique (jeton Bearer, intercepteur 401)
+│   ├── auth-token.ts         # Jeton Bearer : lecture, écriture, effacement (localStorage)
 │   ├── query-client.ts       # Configuration TanStack Query
 │   ├── form-errors.ts        # Mapping des erreurs 422 Laravel vers React Hook Form
+│   ├── paths.ts              # Chemins des écrans et destination d'un compte « en attente »
 │   ├── roles.ts              # hasAnyRole() : partagé par les guards et la navigation
+│   ├── voices.ts             # Les 4 voix : libellés et classes de couleur
 │   └── utils.ts              # cn(), formatage de dates
 │
+├── assets/brand/             # Logo et filigranes (PNG transparents, voir Points d'attention)
 ├── hooks/                    # Hooks génériques sans métier (useDebounce, useMediaQuery)
 └── types/                    # Types partagés : User, Role, Voice, Paginated<T>
 ```
@@ -218,32 +226,50 @@ Rôles v1 : `admin`, `secretaire`, `membre`. Le rôle `externe` est hors v1.
 
 ---
 
-## Authentification Sanctum (mode SPA)
+## Authentification Sanctum (jeton Bearer)
 
-- `lib/api-client.ts` configure Axios avec `withCredentials: true` et `withXSRFToken: true`.
-- Les appels passent par `/api` et `/sanctum` sur **la même origine que le front** : proxy Vite en dev,
-  nginx en production. Pas de CORS, pas de cookies tiers, pas d'URL d'API en dur.
-- Avant le login ou l'inscription : appel de `GET /sanctum/csrf-cookie` (`getCsrfCookie()`), fait par la
-  fonction de `api/` concernée.
-- L'utilisateur courant est chargé via `useCurrentUser()` (TanStack Query, clé `['auth', 'me']`). Pour un
-  visiteur non connecté, `data` vaut `null` : le 401 de `GET /api/me` n'est pas une erreur.
-- Intercepteurs :
-  - **401** : vider le cache de l'utilisateur et rediriger vers `/login`. Le handler est enregistré dans
-    `app/providers.tsx` et ne fait rien si aucun utilisateur n'est en cache (cas du visiteur, géré par les guards)
-  - **419** (CSRF expiré) : rappeler `/sanctum/csrf-cookie` puis rejouer la requête une seule fois
+Décision du 16 novembre 2026 : le front suit le mode jeton déjà en place côté `kantica-back`, parce que le
+même back servira plus tard une app mobile. Pas de session, pas de cookies, pas de CSRF.
 
-### Prérequis côté back (état constaté le 16 novembre 2026)
+- `POST /api/auth/login` renvoie `{ token }` ; `POST /api/register` renvoie `{ token, user }` (compte créé
+  `pending`, connecté d'office). Les hooks `useLogin` et `useRegister` rangent le jeton avec
+  `setAuthToken()` (`lib/auth-token.ts`, `localStorage`, clé `kantica-token`, copie en mémoire si le
+  stockage est indisponible), puis rechargent l'utilisateur courant. Les fonctions de `api/` restent pures :
+  elles ne touchent pas au jeton.
+- `lib/api-client.ts` ajoute `Authorization: Bearer <jeton>` à chaque requête. Les appels passent par
+  `/api` sur **la même origine que le front** : proxy Vite en dev, nginx en production. Pas de CORS, pas
+  d'URL d'API en dur.
+- L'utilisateur courant est chargé via `useCurrentUser()` (TanStack Query, clé `['auth', 'me']`). Sans jeton,
+  aucun appel n'est fait et `data` vaut `null` ; un 401 de `GET /api/me` donne aussi `null` : ce n'est pas
+  une erreur.
+- Intercepteur **401** : le jeton local est oublié (seulement s'il s'agit du jeton envoyé par la requête
+  refusée), puis le handler de `app/providers.tsx` vide l'utilisateur du cache et redirige vers `/login`. Il
+  ne fait rien si aucun utilisateur n'est en cache (cas du visiteur, géré par les guards).
+- `useLogout` oublie le jeton même si l'appel échoue, met `me` à `null` (les guards redirigent vers `/login`)
+  puis retire les autres requêtes du cache. Ne pas utiliser `queryClient.clear()` : il supprime la requête
+  `me` et les guards restent liés à l'ancienne requête, sans redirection.
+- Le jeton dans `localStorage` est lisible par un script injecté (XSS) : pas de contenu HTML non maîtrisé,
+  pas de `dangerouslySetInnerHTML`.
 
-Le front est écrit pour le mode SPA par cookies, mais `kantica-back` n'y est pas encore configuré :
+### Comptes « en attente » (`status: 'pending'`)
 
-- `POST /api/auth/login` et `POST /api/register` renvoient un **token Bearer**, pas une session.
-- `bootstrap/app.php` n'appelle pas `$middleware->statefulApi()`, il n'y a pas de `config/sanctum.php` et
-  `SANCTUM_STATEFUL_DOMAINS` n'est pas défini dans `.env`.
-- `GET /sanctum/csrf-cookie` fonctionne déjà : 204 avec les cookies `XSRF-TOKEN` et `laravel-session`.
+Parcours : `/register` (étape 1, visiteurs) → `/register/profile` (étape 2) → `/pending-account`.
+Les chemins sont dans `lib/paths.ts` et **toujours en anglais** (`/songs`, `/masses`, `/rankings`, `/members`,
+`/profile`) : un nouvel écran ajoute sa clé dans `paths`, le routeur et la navigation l'utilisent, aucun
+chemin n'est écrit en dur ailleurs.
 
-À faire côté back avant l'étape 2 (Connexion) : activer `statefulApi()`, déclarer les origines du front dans
-`SANCTUM_STATEFUL_DOMAINS` (par exemple `localhost:5173,localhost:8080`), faire ouvrir la session par le login
-et la fermer par le logout. Tant que ce n'est pas fait, le login côté front ne peut pas aboutir.
+- `RequireGuest` : un visiteur voit `/login` et `/register` ; un compte `pending` est renvoyé vers son
+  parcours, un compte actif vers l'accueil. C'est ce guard, et non la page, qui envoie le nouvel inscrit
+  vers l'étape 2 après `useRegister`.
+- `RequirePending` : réservé aux comptes `pending` (un compte actif retourne à l'accueil). Avec
+  `requireProfile`, une fiche non enregistrée (`profile.completed: false`) renvoie à l'étape 2.
+- `RequireAuth` : réservé aux comptes actifs ; un compte `pending` est renvoyé vers `getPendingPath()`.
+- `/register/profile` sert aussi de « Modifier ma fiche » (formulaire pré-rempli).
+- L'email de contact est l'email du compte : le back ne l'accepte pas en saisie, il est en lecture seule.
+- Un compte actif dont l'email n'est pas vérifié reçoit un 403 `EMAIL_NOT_VERIFIED` sur les routes
+  protégées ; ce cas n'est pas encore traité côté front.
+- Le back impose au mot de passe 8 caractères, majuscule, minuscule, chiffre et symbole ; la maquette
+  n'affiche que « Au moins 8 caractères ». Les erreurs 422 du back s'affichent sous le champ.
 
 ---
 
@@ -327,10 +353,16 @@ héritent de la charte sans retouche.
 - Les tokens `secondary`, `accent`, `muted`, `border`, `input`, ainsi que le texte clair du mode sombre,
   sont des teintes dérivées : la charte ne les fournit pas.
 - Thème géré par `next-themes` : préférence du système par défaut, choix mémorisé sous la clé `kantica-theme`.
+  `components/common/theme-toggle.tsx` bascule clair et sombre ; il est en haut à droite de `AuthLayout` et
+  `AppLayout`. La maquette place ce réglage (« Mode sombre ») dans l'écran Profil : à son implémentation,
+  y déplacer le bouton et le retirer des layouts.
 - Titres (`h1` à `h3`) en Cormorant Garamond 600 (`font-heading`), interface en Source Sans 3 (`font-sans`).
   Les polices sont importées dans `src/main.tsx`.
-- Badges de voix (Soprano, Alto, Ténor, Basse) et couleurs liturgiques : définis dans la charte, pas encore
-  codés. Ajouter leurs tokens quand un écran en a besoin, en relevant les valeurs sur la maquette.
+- Badges de voix (Soprano, Alto, Ténor, Basse), `success` et `warning` : tokens codés dans `src/index.css`,
+  valeurs du mode clair relevées sur les maquettes du lot 1, valeurs du mode sombre dérivées. Les classes
+  de chaque voix sont dans `lib/voices.ts`, le rendu dans `components/common/voice-badge.tsx`.
+- Couleurs liturgiques : définies dans la charte, pas encore codées. Ajouter leurs tokens quand un écran
+  en a besoin, en relevant les valeurs sur la maquette.
 
 ### Navigation par rôle
 
@@ -347,12 +379,17 @@ affichent `<ComingSoon />` : ne pas y inventer d'interface.
 
 ### Composants shadcn
 
-- `components/ui/` est généré par la CLI shadcn et n'existe pas encore : `components.json` n'a pas été créé
-  car la CLI interroge `ui.shadcn.com`, injoignable depuis l'environnement où le socle a été posé.
-- À lancer depuis un terminal avec accès réseau : `npx shadcn@latest init -t vite -b radix -p vega`.
-  L'init réécrit des variables dans `src/index.css` : relire le diff et rétablir les valeurs de la charte
-  (tableau ci-dessus). Les alias `@/` et le plugin Tailwind sont déjà configurés.
-- Puis ajouter les composants au fur et à mesure : `npx shadcn@latest add button input label`, etc.
+- `components/ui/` est généré par la CLI shadcn (style `radix-vega`) : `button`, `input` et `label` y sont.
+  Ne pas les modifier à la main : les adapter par une enveloppe dans `components/common/` (`FormField`,
+  `ActionButton` : hauteur tactile de 48 et 56 px, texte de 16 px).
+- `components.json` a été écrit à la main : la commande `shadcn init` expire (le serveur met environ 15 s
+  à répondre, la CLI abandonne à 10 s). Il n'y a donc pas eu d'init, `src/index.css` n'a pas été réécrit.
+  Pour ajouter un composant : `npx shadcn@latest add <nom>`. Si la CLI expire, relancer (le réseau est
+  intermittent), ou télécharger l'élément avec `curl` depuis
+  `https://ui.shadcn.com/r/styles/radix-vega/<nom>.json` et passer le fichier local à `shadcn add`.
+- Piège : un élément installé ainsi peut déclarer `cn` comme dépendance npm et importer `from "cn"`. Il faut
+  alors désinstaller le paquet `cn` et rétablir `import { cn } from "@/lib/utils"`. Les paquets `radix-ui`
+  nécessaires doivent être installés à part.
 - Le composant shadcn `sonner` dépend de `next-themes`, déjà installé. `components/common/toaster.tsx`
   enveloppe `sonner` directement en attendant.
 
@@ -375,7 +412,8 @@ Fichiers : `Dockerfile` (multi-étapes), `docker-compose.yml`, `nginx.conf`, `.d
   l'hôte). Le front le joint via `host.docker.internal:8008`.
 - nginx : fallback SPA, gzip, `index.html` en `no-cache`, `/assets/` en cache immuable d'un an, en-têtes de
   sécurité, `client_max_body_size 10m` (import Excel), timeout de 120 s sur l'API (génération PPTX).
-- nginx proxifie `/api/*` et `/sanctum/*` vers le back. `nginx.conf` est un **gabarit `envsubst`**, copié dans
+- nginx proxifie `/api/*` et `/sanctum/*` vers le back (`/sanctum` n'est plus utilisé depuis le passage au
+  jeton Bearer ; conservé sans effet). `nginx.conf` est un **gabarit `envsubst`**, copié dans
   `/etc/nginx/templates/` : seules les variables d'environnement définies (`API_UPSTREAM`) sont remplacées.
 - nginx n'hérite pas des `add_header` du niveau `server` dès qu'un `location` en déclare un : les en-têtes de
   sécurité sont répétés dans chaque `location` qui définit son propre `Cache-Control`.
@@ -405,12 +443,20 @@ npm run lint     # ESLint
 
 ## Points d'attention
 
-- **Logo officiel** : aucun fichier n'est fourni (`Documents/Cff.jpg` est le MCD de la base, pas le logo).
-  `auth-layout.tsx` dessine l'icône simplifiée de la charte (C bleu, point rouge) en CSS. Déposer un SVG ou
-  PNG transparent dans `src/assets/` et le brancher, avec le filigrane (Gris CFF, 5 à 7 % d'opacité).
-- **Favicon** : `public/favicon.svg` est celui du gabarit Vite, à remplacer par l'icône Kantica.
-- **Compte `pending`** : les guards ne traitent pas encore le statut `pending` (écran « Compte en attente »,
-  étape 2). Le back refuse déjà ces comptes sur les routes protégées.
+- **Logo et filigrane** : les fichiers sont dans `src/assets/brand/` (`logo-cff.png`, `watermark-light.png`,
+  `watermark-dark.png`, `watermark-gray.png`, tous en 543 x 487, fond transparent). `BrandMark` affiche le
+  logo ; `Watermark` (`components/common/watermark.tsx`) affiche le filigrane clair ou sombre selon le thème,
+  ancré en bas à droite par `AuthLayout` (panneau de gauche sur grand écran, derrière le formulaire sur
+  mobile). Les versions claire (encre à environ 6 %) et sombre (blanc à environ 5 %) sont déjà à leur
+  opacité : ne pas ajouter d'opacité CSS. `watermark-gray.png` (Gris CFF `#C8C8C8`, pleine opacité) est la
+  version source, pas encore utilisée.
+- **Favicon** : `public/favicon-32.png`, `favicon-192.png` et `apple-touch-icon.png` (fond blanc, car iOS
+  n'accepte pas la transparence) sont générés à partir du logo, cadré dans un carré. Les régénérer si le
+  logo change.
+- **Lint** : `components/ui/button.tsx` (généré par shadcn) exporte `buttonVariants` à côté de `Button`, ce
+  qui déclenche `react-refresh/only-export-components`. Un `eslint-disable-next-line` est posé sur l'export
+  et `eslint.config.js` reste intact (le hook `config-protection` interdit de l'assouplir). Si la CLI shadcn
+  réécrit `button.tsx`, remettre ce commentaire.
 - **Taille du bundle** : un seul chunk d'environ 560 kB (175 kB gzip). Découper par route (`lazy`) quand les
   écrans des lots suivants arriveront.
 
@@ -420,10 +466,13 @@ npm run lint     # ESLint
 
 1. Socle
    - [x] Providers, routeur, layouts, client API, thème clair/sombre, guards par rôle, Docker
-   - [ ] Composants shadcn (init de la CLI), logo officiel, `DataTable`
+   - [x] Composants shadcn `button`, `input`, `label`
+   - [x] Logo officiel, filigrane et favicon
+   - [ ] `DataTable`
 2. `auth` : Connexion, Inscription (compte + fiche de recensement), Compte en attente
-   - [x] Couche données : `useCurrentUser`, `useLogin`, `useLogout`, `loginSchema`
-   - [ ] Prérequis back (mode SPA par cookies), pages et formulaires, guard du statut `pending`
+   - [x] Couche données : `useCurrentUser`, `useLogin`, `useLogout`, `useRegister`, `useUpdateOwnProfile`
+   - [x] KAN-57 : inscription en 2 étapes, écran d'attente, guards du statut `pending`
+   - [ ] Page de connexion (formulaire), vérification d'email
 3. `members` : Liste des membres (secrétaire), Fiche membre, Export PDF / CSV
    - [x] Couche données de la liste : `getMembers`, `useMembers`, `memberKeys`
    - [ ] Tableau, recherche et filtre de voix, fiche membre, export

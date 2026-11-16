@@ -6,6 +6,7 @@ import { RouterProvider } from 'react-router/dom';
 import { Toaster } from '@/components/common/toaster';
 import { authKeys } from '@/features/auth';
 import { setUnauthorizedHandler } from '@/lib/api-client';
+import { paths } from '@/lib/paths';
 import { queryClient } from '@/lib/query-client';
 
 import { router } from './router';
@@ -21,7 +22,7 @@ export function Providers() {
       }
 
       queryClient.setQueryData(authKeys.me(), null);
-      void router.navigate('/login', { replace: true });
+      void router.navigate(paths.login, { replace: true });
     });
 
     return () => setUnauthorizedHandler(null);
