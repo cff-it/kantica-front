@@ -267,6 +267,22 @@ chemin n'est écrit en dur ailleurs.
 - `RequireAuth` : réservé aux comptes actifs ; un compte `pending` est renvoyé vers `getPendingPath()`.
 - `/register/profile` sert aussi de « Modifier ma fiche » (formulaire pré-rempli).
 - L'email de contact est l'email du compte : le back ne l'accepte pas en saisie, il est en lecture seule.
+
+### Connexion (`/login`)
+
+- `POST /api/auth/login` répond **401** (« Identifiants invalides. ») aussi bien pour un email inconnu que pour
+  un mauvais mot de passe : le front affiche un message unique (`isInvalidCredentialsError` dans
+  `features/auth/utils.ts`) et ne les distingue jamais. Une 422 est mappée sur les champs par
+  `applyServerErrors` ; toute autre erreur (réseau coupé, 5xx) ouvre un toast.
+- `loginSchema` nettoie l'email (`trim`) : les claviers mobiles ajoutent souvent une espace finale. Le mot de
+  passe n'est jamais modifié.
+- `useLogin` est en `networkMode: 'always'`. Par défaut, TanStack Query met une mutation en pause hors
+  ligne : le bouton tournerait sans fin, sans requête ni message. À reprendre pour toute mutation de
+  formulaire dont l'échec doit s'afficher tout de suite (`useRegister` ne l'a pas encore).
+- `/forgot-password` : route réservée (`<ComingSoon />`). Le lien figure sur la maquette de connexion, mais le
+  back n'a aucune route de réinitialisation de mot de passe et aucune maquette de l'écran n'existe.
+- `/profile` : en attendant l'écran Profil, la page affiche `<ComingSoon />` et `LogoutButton` (le bouton
+  « Se déconnecter » de la maquette). Retirer le bouton de `app/router.tsx` quand l'écran sera construit.
 - Un compte actif dont l'email n'est pas vérifié reçoit un 403 `EMAIL_NOT_VERIFIED` sur les routes
   protégées ; ce cas n'est pas encore traité côté front.
 - Le back impose au mot de passe 8 caractères, majuscule, minuscule, chiffre et symbole ; la maquette
@@ -486,7 +502,8 @@ npm run lint     # ESLint
 2. `auth` : Connexion, Inscription (compte + fiche de recensement), Compte en attente
    - [x] Couche données : `useCurrentUser`, `useLogin`, `useLogout`, `useRegister`, `useUpdateOwnProfile`
    - [x] KAN-57 : inscription en 2 étapes, écran d'attente, guards du statut `pending`
-   - [ ] Page de connexion (formulaire), vérification d'email
+   - [x] KAN-58 : page de connexion, déconnexion depuis Profil
+   - [ ] Vérification d'email, « Mot de passe oublié » (back et maquette absents)
 3. `members` : Liste des membres (secrétaire), Fiche membre, Export PDF / CSV
    - [x] Couche données de la liste : `getMembers`, `useMembers`, `memberKeys`
    - [ ] Tableau, recherche et filtre de voix, fiche membre, export

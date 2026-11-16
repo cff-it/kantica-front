@@ -4,6 +4,7 @@ import type { User } from '@/types';
 // Les chemins sont en anglais, comme les noms de features.
 export const paths = {
   login: '/login',
+  forgotPassword: '/forgot-password',
   register: '/register',
   registerProfile: '/register/profile',
   pendingAccount: '/pending-account',

@@ -2,7 +2,9 @@ import { createBrowserRouter, Navigate } from 'react-router';
 
 import { ComingSoon } from '@/components/common/coming-soon';
 import {
+  ForgotPasswordPage,
   LoginPage,
+  LogoutButton,
   PendingAccountPage,
   ProfileFormPage,
   RegisterPage,
@@ -32,6 +34,11 @@ export const router = createBrowserRouter([
             path: paths.login,
             element: <LoginPage />,
             handle: { title: 'Connexion' },
+          },
+          {
+            path: paths.forgotPassword,
+            element: <ForgotPasswordPage />,
+            handle: { title: 'Mot de passe oublié' },
           },
           {
             path: paths.register,
@@ -107,8 +114,15 @@ export const router = createBrowserRouter([
             ],
           },
           {
+            // Écran Profil à venir : en attendant, seul le bouton de
+            // déconnexion de la maquette (le ticket l'attend dans Profil).
             path: paths.profile,
-            element: <ComingSoon title="Profil" />,
+            element: (
+              <>
+                <ComingSoon title="Profil" />
+                <LogoutButton />
+              </>
+            ),
             handle: { title: 'Profil' },
           },
         ],
