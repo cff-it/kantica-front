@@ -1,0 +1,28 @@
+# Dépendances et sorties de build (régénérées dans l'image)
+node_modules
+dist
+dist-ssr
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Git, éditeurs, OS
+.git
+.gitignore
+.idea
+.vscode
+.DS_Store
+
+# Logs et fichiers locaux
+logs
+*.log
+*.local
+.env
+.env.*
+
+# Divers
+README.md
+graphify-out
+ignored

@@ -1,0 +1,122 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Charte graphique Kantica
+ * (Documents/Kantica-maquettes/02-Mode-sombre-et-charte/03-Charte-graphique)
+ *
+ * Les noms des variables suivent la convention shadcn/ui : les composants
+ * ajoutés par la CLI shadcn héritent donc automatiquement de la charte.
+ * Aucune couleur en dur dans les composants : toujours passer par ces tokens.
+ */
+:root {
+  --radius: 0.75rem;
+
+  /* Mode clair */
+  --background: #ffffff; /* Blanc */
+  --foreground: #1f2430; /* Encre */
+  --card: #ffffff;
+  --card-foreground: #1f2430;
+  --popover: #ffffff;
+  --popover-foreground: #1f2430;
+  --primary: #3a6fc9; /* Bleu CFF : boutons, navigation */
+  --primary-foreground: #ffffff;
+  --muted-foreground: #5f6675; /* Ardoise : texte secondaire */
+  --destructive: #e8231a; /* Rouge CFF */
+  --destructive-foreground: #ffffff;
+  --ring: #3a6fc9;
+
+  /* Teintes dérivées de la charte (bordures, surfaces discrètes) */
+  --secondary: #eef2fa;
+  --secondary-foreground: #2f5dae;
+  --muted: #f3f4f7;
+  --accent: #eef2fa;
+  --accent-foreground: #2f5dae;
+  --border: #e3e5ea;
+  --input: #d5d8df;
+
+  /* Tokens propres à Kantica */
+  --link: #2f5dae; /* Bleu texte : liens, texte bleu */
+  --brand-red: #e8231a; /* Rouge CFF : accent ponctuel */
+  --brand-gray: #c8c8c8; /* Gris CFF : filigranes */
+}
+
+.dark {
+  --background: #11141b; /* Nuit */
+  --foreground: #f3f4f7;
+  --card: #1a1e27; /* Surface : champs sombres */
+  --card-foreground: #f3f4f7;
+  --popover: #1a1e27;
+  --popover-foreground: #f3f4f7;
+  --primary: #7fa6ea; /* Bleu nuit : principal sombre */
+  --primary-foreground: #11141b;
+  --muted-foreground: #9aa1b0;
+  --destructive: #e8231a;
+  --destructive-foreground: #ffffff;
+  --ring: #7fa6ea;
+
+  --secondary: #232938;
+  --secondary-foreground: #7fa6ea;
+  --muted: #1a1e27;
+  --accent: #232938;
+  --accent-foreground: #7fa6ea;
+  --border: #2a2f3b;
+  --input: #2a2f3b;
+
+  --link: #7fa6ea;
+  --brand-red: #e8231a;
+  --brand-gray: #c8c8c8;
+}
+
+@theme inline {
+  /* Titres : Cormorant Garamond 600. Interface : Source Sans 3. */
+  --font-sans: 'Source Sans 3 Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-heading: 'Cormorant Garamond', Georgia, serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-link: var(--link);
+  --color-brand-red: var(--brand-red);
+  --color-brand-gray: var(--brand-gray);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  /* Texte courant à 16 px minimum : lisible par tous les choristes. */
+  body {
+    @apply bg-background font-sans text-base text-foreground antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply font-heading font-semibold;
+  }
+}
