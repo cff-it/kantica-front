@@ -112,6 +112,12 @@ export const router = createBrowserRouter([
                 element: <MembersListPage />,
                 handle: { title: 'Membres' },
               },
+              {
+                // Fiche membre à venir : les chevrons de la liste y mènent.
+                path: paths.member,
+                element: <ComingSoon title="Fiche membre" />,
+                handle: { title: 'Fiche membre' },
+              },
             ],
           },
           {

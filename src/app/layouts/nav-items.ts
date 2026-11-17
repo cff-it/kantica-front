@@ -16,6 +16,9 @@ export type NavItem = {
   icon: LucideIcon;
   // Absent : l'onglet est visible par tous les rôles.
   roles?: Role[];
+  // `false` : absent de la barre latérale du grand écran (le profil s'ouvre
+  // depuis la carte de l'utilisateur, en bas de la barre).
+  sidebar?: false;
 };
 
 // Onglets de la barre de navigation, dans l'ordre de la maquette
@@ -30,5 +33,5 @@ export const NAV_ITEMS: NavItem[] = [
     icon: Users,
     roles: ['admin', 'secretaire'],
   },
-  { to: paths.profile, label: 'Profil', icon: UserRound },
+  { to: paths.profile, label: 'Profil', icon: UserRound, sidebar: false },
 ];
