@@ -265,8 +265,24 @@ chemin n'est écrit en dur ailleurs.
 - `RequirePending` : réservé aux comptes `pending` (un compte actif retourne à l'accueil). Avec
   `requireProfile`, une fiche non enregistrée (`profile.completed: false`) renvoie à l'étape 2.
 - `RequireAuth` : réservé aux comptes actifs ; un compte `pending` est renvoyé vers `getPendingPath()`.
-- `/register/profile` sert aussi de « Modifier ma fiche » (formulaire pré-rempli).
+- `/register/profile` sert aussi de « Modifier ma fiche » (formulaire pré-rempli), depuis l'écran d'attente ;
+  après l'enregistrement, retour sur `/pending-account` avec la fiche rechargée (`useUpdateOwnProfile`
+  invalide `me` avant la navigation).
 - L'email de contact est l'email du compte : le back ne l'accepte pas en saisie, il est en lecture seule.
+- **Voix réservée après validation** : `canUpdateOwnVoice(user)` (`features/auth/utils.ts`) reprend
+  `UserPolicy::updateOwnVoice` du back : voix libre si le compte est en attente, sans fiche ou admin, réservée
+  sinon (la secrétaire passe par la fiche du membre). Voix réservée : `VoicePicker` est en lecture seule
+  (`disabled`, avec un texte d'aide), `createProfileSchema(false)` ne l'exige plus et la requête **n'envoie pas
+  `voice_group`**. Le renvoyer sans la voix précise donnerait un 422 (« Votre voix ne peut être modifiée que
+  par un administrateur »), car le back compare aussi `voice`.
+- **Voix précise (`voice`, ex. « A2 »)** : le formulaire ne la saisit pas. `getVoiceToKeep` la renvoie tant que le
+  groupe ne change pas ; sans cela, enregistrer la fiche l'efface côté back.
+- **« Modifier ma fiche » d'un compte validé** : route `/profile/edit` (`paths.profileEdit`, `EditProfilePage`),
+  sous `RequireAuth` et `AppLayout` (barre d'onglets, « Profil » en surbrillance). Même formulaire, sans le suivi
+  d'étapes, avec une flèche de retour. `ProfileForm` reçoit `returnTo` : l'écran d'origine est lu dans
+  `location.state.from` (le lien d'entrée doit le poser : `<Link to={paths.profileEdit} state={{ from: ... }}>`),
+  avec le Profil en repli (adresse saisie à la main). **Aucun lien d'entrée n'existe encore** : le ticket le
+  laisse « à définir » (pas d'entrée « Ma fiche » dans le Profil des maquettes), à poser avec l'écran Profil.
 
 ### Connexion (`/login`)
 
@@ -503,6 +519,9 @@ npm run lint     # ESLint
    - [x] Couche données : `useCurrentUser`, `useLogin`, `useLogout`, `useRegister`, `useUpdateOwnProfile`
    - [x] KAN-57 : inscription en 2 étapes, écran d'attente, guards du statut `pending`
    - [x] KAN-58 : page de connexion, déconnexion depuis Profil
+   - [x] KAN-59 : modification de la fiche (formulaire pré-rempli, voix en lecture seule après validation)
+   - [x] KAN-59 : route `/profile/edit` pour un compte validé
+   - [ ] KAN-59 : lien d'entrée vers `/profile/edit` (à définir, avec l'écran Profil)
    - [ ] Vérification d'email, « Mot de passe oublié » (back et maquette absents)
 3. `members` : Liste des membres (secrétaire), Fiche membre, Export PDF / CSV
    - [x] Couche données de la liste : `getMembers`, `useMembers`, `memberKeys`

@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useMemo } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
@@ -6,44 +7,59 @@ import { toast } from 'sonner';
 import { ActionButton } from '@/components/common/action-button';
 import { FormField } from '@/components/common/form-field';
 import { applyServerErrors } from '@/lib/form-errors';
-import { paths } from '@/lib/paths';
 import { toVoice } from '@/lib/voices';
 import type { User } from '@/types';
 
 import { useUpdateOwnProfile } from '../hooks/use-update-own-profile';
-import { profileSchema, type ProfileInput } from '../schemas';
+import { createProfileSchema, type ProfileInput } from '../schemas';
+import { canUpdateOwnVoice, getVoiceToKeep } from '../utils';
 import { VoicePicker } from './voice-picker';
 
 type ProfileFormProps = {
   user: User;
+  // Écran d'origine : on y revient une fois la fiche enregistrée.
+  returnTo: string;
 };
+
+const VOICE_LOCKED_HINT =
+  'Votre voix ne peut être modifiée que par la secrétaire ou un administrateur.';
 
 // Étape 2 de l'inscription : fiche de recensement. Le même formulaire sert à
 // « Modifier ma fiche » : il est pré-rempli avec la fiche déjà enregistrée.
-export function ProfileForm({ user }: ProfileFormProps) {
+// Une fois la voix réservée (compte validé, voir `canUpdateOwnVoice`), les
+// tuiles passent en lecture seule et la requête n'envoie plus le groupe de voix.
+export function ProfileForm({ user, returnTo }: ProfileFormProps) {
   const navigate = useNavigate();
   const updateProfile = useUpdateOwnProfile();
   const { profile } = user;
+  const voiceEditable = canUpdateOwnVoice(user);
+  const schema = useMemo(
+    () => createProfileSchema(voiceEditable),
+    [voiceEditable],
+  );
   const form = useForm<ProfileInput>({
-    resolver: zodResolver(profileSchema),
+    resolver: zodResolver(schema),
     defaultValues: {
       last_name: profile?.last_name ?? '',
       first_name: profile?.first_name ?? '',
-      voice_group: toVoice(profile?.voice_group),
+      voice_group: voiceEditable ? toVoice(profile?.voice_group) : undefined,
       phone: profile?.phone ?? '',
     },
   });
   const { errors } = form.formState;
 
   const onSubmit = form.handleSubmit((values) =>
-    updateProfile.mutate(values, {
-      onSuccess: () => void navigate(paths.pendingAccount),
-      onError: (error) => {
-        if (!applyServerErrors(error, form.setError)) {
-          toast.error('Impossible d\'enregistrer votre fiche. Réessayez.');
-        }
+    updateProfile.mutate(
+      { ...values, voice: getVoiceToKeep(profile, values.voice_group) },
+      {
+        onSuccess: () => void navigate(returnTo),
+        onError: (error) => {
+          if (!applyServerErrors(error, form.setError)) {
+            toast.error('Impossible d\'enregistrer votre fiche. Réessayez.');
+          }
+        },
       },
-    }),
+    ),
   );
 
   return (
@@ -62,19 +78,28 @@ export function ProfileForm({ user }: ProfileFormProps) {
           {...form.register('first_name')}
         />
       </div>
-      <Controller
-        control={form.control}
-        name="voice_group"
-        render={({ field, fieldState }) => (
-          <VoicePicker
-            name={field.name}
-            value={field.value}
-            onChange={field.onChange}
-            onBlur={field.onBlur}
-            error={fieldState.error?.message}
-          />
-        )}
-      />
+      {voiceEditable ? (
+        <Controller
+          control={form.control}
+          name="voice_group"
+          render={({ field, fieldState }) => (
+            <VoicePicker
+              name={field.name}
+              value={field.value}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              error={fieldState.error?.message}
+            />
+          )}
+        />
+      ) : (
+        <VoicePicker
+          name="voice_group"
+          value={toVoice(profile?.voice_group)}
+          disabled
+          hint={VOICE_LOCKED_HINT}
+        />
+      )}
       <div className="grid gap-6 lg:grid-cols-2 lg:gap-4">
         <FormField
           label="Téléphone"
