@@ -1,8 +1,7 @@
 import { VoiceBadge } from '@/components/common/voice-badge';
+import { getFullName, getInitials } from '@/lib/names';
 import { cn } from '@/lib/utils';
 import type { MemberProfile } from '@/types';
-
-import { getFullName, getInitials } from '../utils';
 
 type MemberSummaryCardProps = {
   profile: MemberProfile;

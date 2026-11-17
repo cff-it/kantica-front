@@ -32,8 +32,9 @@ src/
 │   ├── guards.tsx            # RequireAuth, RequirePending, RequireGuest, RequireRole
 │   └── layouts/
 │       ├── auth-layout.tsx   # Écrans publics et parcours « en attente » : panneau de marque (grand écran)
-│       ├── app-layout.tsx    # Écrans connectés : barre d'onglets selon le rôle
-│       └── nav-items.ts      # Onglets de navigation et rôles autorisés
+│       ├── app-layout.tsx    # Écrans connectés : barre d'onglets (sous `lg`) ou barre latérale (dès `lg`)
+│       ├── app-sidebar.tsx   # Barre latérale web : marque, entrées selon le rôle, carte de l'utilisateur
+│       └── nav-items.ts      # Entrées de navigation et rôles autorisés
 │
 ├── features/                 # ⭐ Cœur : 1 dossier = 1 domaine métier
 │   ├── auth/
@@ -55,17 +56,19 @@ src/
 │   └── common/               # Composants partagés : PageHeader, RoleGuard, ComingSoon, Toaster,
 │                             # FormField, PasswordField (FormField + œil afficher/masquer, à utiliser pour tout
 │                             # mot de passe), ActionButton (enveloppes de shadcn), AuthPanel, AuthHeading,
-│                             # BrandMark, Watermark, ThemeToggle, VoiceBadge (DataTable à ajouter avec la
-│                             # liste des membres)
+│                             # BrandMark, Watermark, ThemeToggle, VoiceBadge, SheetDialogContent (modale :
+│                             # feuille en bas sur mobile, fenêtre centrée dès `md`)
 │
 ├── lib/
 │   ├── api-client.ts         # Instance Axios unique (jeton Bearer, intercepteur 401)
 │   ├── auth-token.ts         # Jeton Bearer : lecture, écriture, effacement (localStorage)
+│   ├── download-file.ts      # downloadBlob() et nom de fichier de Content-Disposition (exports)
 │   ├── query-client.ts       # Configuration TanStack Query
 │   ├── form-errors.ts        # Mapping des erreurs 422 Laravel vers React Hook Form
 │   ├── page-title.ts         # APP_NAME et format du titre de l'onglet
 │   ├── paths.ts              # Chemins des écrans et destination d'un compte « en attente »
-│   ├── roles.ts              # hasAnyRole() : partagé par les guards et la navigation
+│   ├── roles.ts              # hasAnyRole() et getRoleLabel() : guards, navigation, carte de l'utilisateur
+│   ├── names.ts              # getFullName(), getInitials() : prénom, nom et avatars
 │   ├── voices.ts             # Les 4 voix : libellés et classes de couleur
 │   └── utils.ts              # cn(), formatage de dates
 │
@@ -359,6 +362,10 @@ chemin n'est écrit en dur ailleurs.
 ## Interface
 
 - Responsive obligatoire : l'usage mobile est prioritaire pour les membres.
+- Les maquettes web et mobile sont deux mises en page différentes (barre latérale ou barre d'onglets,
+  tableau ou lignes empilées), pas une mise à l'échelle. Une seule bascule, `lg` (1024 px), pour tout
+  l'écran : ne pas mélanger `md:` et `lg:` pour une même mise en page. Un écran se vérifie à 390 px
+  (émulation d'appareil : le redimensionnement de fenêtre ne descend pas sous 500 px) et à 1440 px.
 - Zones tactiles de 44 px minimum, texte courant de 16 px minimum.
 - Thèmes clair et sombre via les variables CSS de shadcn, conformes à la charte graphique Kantica.
 - Les écrans suivent les maquettes du projet (`Kantica-maquettes/`) : ne pas inventer d'écran ni de champ absent des maquettes et des specs.
@@ -410,6 +417,14 @@ La source de vérité est `app/layouts/nav-items.ts`.
 Événements et Paiements sont rangés dans Profil en attendant leurs écrans. Les routes des lots ultérieurs
 affichent `<ComingSoon />` : ne pas y inventer d'interface.
 
+**Web (dès `lg`)** : la barre d'onglets cède la place à une barre latérale à gauche
+(`app/layouts/app-sidebar.tsx`, maquettes `01-Lot1-Recensement/web`) : marque en haut, mêmes entrées sauf
+Profil, carte de l'utilisateur en bas (initiales, nom, « Rôle · Voix ») qui ouvre `/profile`, bouton de
+thème juste au-dessus. Le contenu passe sur fond grisé (`bg-muted/50`). Sous `lg` (mobile et tablette), la
+barre d'onglets est conservée. Écarts connus avec les maquettes : l'entrée « Accueil » (première des
+maquettes web et mobile) est absente, faute d'écran ; la maquette mobile retire « Profil » des onglets (le
+profil s'ouvre depuis l'avatar de l'accueil), ce qui est impossible tant que l'accueil n'existe pas.
+
 ### Titre de l'onglet
 
 Format : « Page - Chorale Francophone de Faravohitra » (ex. « Inscription - Chorale Francophone de
@@ -422,7 +437,7 @@ chargement du JS) est le nom seul.
 
 ### Composants shadcn
 
-- `components/ui/` est généré par la CLI shadcn (style `radix-vega`) : `button`, `input` et `label` y sont.
+- `components/ui/` est généré par la CLI shadcn (style `radix-vega`) : `button`, `input`, `label` et `dialog` y sont.
   Ne pas les modifier à la main : les adapter par une enveloppe dans `components/common/` (`FormField`,
   `ActionButton` : hauteur tactile de 48 et 56 px, texte de 16 px).
 - `components.json` a été écrit à la main : la commande `shadcn init` expire (le serveur met environ 15 s
@@ -433,8 +448,52 @@ chargement du JS) est le nom seul.
 - Piège : un élément installé ainsi peut déclarer `cn` comme dépendance npm et importer `from "cn"`. Il faut
   alors désinstaller le paquet `cn` et rétablir `import { cn } from "@/lib/utils"`. Les paquets `radix-ui`
   nécessaires doivent être installés à part.
+- `dialog` : `shadcn add dialog` propose d'écraser `button.tsx` (refuser) et ajoute le paquet `cn` (à
+  désinstaller). Le JSON du registre est brut (alias `@/registry/...`, `IconPlaceholder`, `cn-font-heading`) :
+  `dialog.tsx` a été posé à la main avec `@/lib/utils`, `@/components/ui/button`, `XIcon` de lucide et
+  `font-heading`. Ses animations utilisent les variants `data-open` et `data-closed`, déclarés dans
+  `src/index.css` (Radix pose `data-state`). La croix et le « Close » anglais de shadcn ne servent pas :
+  `SheetDialogContent` pose sa propre croix (« Fermer »).
 - Le composant shadcn `sonner` dépend de `next-themes`, déjà installé. `components/common/toaster.tsx`
   enveloppe `sonner` directement en attendant.
+
+---
+
+## Liste des membres
+
+- `GET /api/members?search=&voice=&page=` (20 par page, `PER_PAGE` du back). `useMembersFilters` porte la
+  recherche (anti-rebond), le filtre de voix et la page ; la page revient à 1 quand la recherche ou la voix
+  change, sans effet ni requête en plus.
+- Deux mises en page, une seule montée à la fois (`useMediaQuery(LG_MEDIA_QUERY)` dans `MembersList`) :
+  lignes empilées sous `lg`, tableau dès `lg` (Nom, Voix, Téléphone, Email, Statut, maquette
+  `web/05-Liste-membres`). Chaque ligne est un lien vers la fiche (`getMemberPath(id)` de `lib/paths.ts`,
+  motif `paths.member`) avec son chevron de fin de ligne, décoratif ; en web le lien est sur le nom et
+  couvre toute la ligne. La route `/members/:id` affiche `<ComingSoon />` en attendant la fiche membre.
+- **Téléphone et Email** : `MemberListItemResource` ne les renvoie pas. Chaque ligne du tableau lit donc la
+  fiche (`GET /api/members/{id}`, `useMemberContact`, même clé de cache que la future fiche, `staleTime` de
+  5 min) : 20 requêtes pour une page pleine. Elles ne partent que dès `lg`, jamais sur mobile. Si le back
+  ajoute `phone` et `contact_mail` à la ligne de liste, supprimer `useMemberContact`, `getMember` et lire les
+  champs sur `MemberListItem`.
+- Autour de 1024 px, cinq colonnes ne tiennent pas à côté de la barre latérale : le tableau défile dans sa
+  carte (Téléphone et Email ne se coupent jamais). Dès environ 1280 px, tout tient.
+- Le contenu des écrans connectés (`AppLayout`) occupe toute la largeur à droite de la barre latérale,
+  plafonnée à 1536 px (`lg:max-w-384`) pour ne pas s'étirer sur les très grands écrans.
+
+## Export de la liste des membres
+
+- `GET /api/members/export?format=pdf|csv&voice=S|A|T|B` renvoie le fichier lui-même, pas du JSON :
+  `exportMembers` (`features/members/api/`) lit la réponse en `Blob` et tire le nom de fichier de
+  `Content-Disposition`. `useExportMembers` télécharge le fichier dans son `onSuccess` (`downloadBlob`,
+  `lib/download-file.ts`), donc même si la feuille est fermée pendant la génération. Le back accepte aussi
+  `xlsx` : hors maquette, non proposé.
+- `ExportMembersDialog` (bouton « Exporter » et feuille « Exporter la liste ») reçoit `count` et `voice`.
+  `getExportCount` lit l'effectif dans `meta.registered_count` ou `meta.voice_counts` de la liste. La page lui
+  passe le filtre de voix actif ; la recherche n'est pas reprise (le back n'exporte que par voix).
+- Écart connu : `registered_count` compte les comptes en attente, alors que l'export du back ne prend que
+  les comptes `active`. Le rappel « N choristes » peut donc dépasser le nombre de lignes du fichier.
+- Une erreur de l'export (réseau, 403, 500) ouvre un toast et laisse la feuille ouverte ; le corps de
+  l'erreur est un `Blob`, il n'est pas lu. `useExportMembers` est en `networkMode: 'always'`, comme
+  `useLogin`.
 
 ---
 
@@ -512,9 +571,9 @@ npm run lint     # ESLint
 
 1. Socle
    - [x] Providers, routeur, layouts, client API, thème clair/sombre, guards par rôle, Docker
-   - [x] Composants shadcn `button`, `input`, `label`
+   - [x] Composants shadcn `button`, `input`, `label`, `dialog`
    - [x] Logo officiel, filigrane et favicon
-   - [ ] `DataTable`
+   - [ ] `DataTable` générique (la liste des membres a son propre tableau, `MembersList`)
 2. `auth` : Connexion, Inscription (compte + fiche de recensement), Compte en attente
    - [x] Couche données : `useCurrentUser`, `useLogin`, `useLogout`, `useRegister`, `useUpdateOwnProfile`
    - [x] KAN-57 : inscription en 2 étapes, écran d'attente, guards du statut `pending`
@@ -525,4 +584,7 @@ npm run lint     # ESLint
    - [ ] Vérification d'email, « Mot de passe oublié » (back et maquette absents)
 3. `members` : Liste des membres (secrétaire), Fiche membre, Export PDF / CSV
    - [x] Couche données de la liste : `getMembers`, `useMembers`, `memberKeys`
-   - [ ] Tableau, recherche et filtre de voix, fiche membre, export
+   - [x] KAN-61 : export PDF / CSV (feuille « Exporter la liste », voir « Export de la liste des membres »)
+   - [x] Liste : tableau (web, 5 colonnes de la maquette) et lignes (mobile), recherche, filtre de voix,
+     pagination (voir « Liste des membres »)
+   - [ ] Fiche membre

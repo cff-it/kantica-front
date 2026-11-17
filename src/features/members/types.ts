@@ -31,3 +31,19 @@ export type MembersQuery = {
   voice?: Voice;
   page?: number;
 };
+
+// Formats proposés par l'écran d'export. Le back accepte aussi `xlsx`, absent
+// des maquettes.
+export type ExportFormat = 'pdf' | 'csv';
+
+// Paramètres acceptés par ExportMembersRequest. Sans `voice`, toutes les voix.
+export type ExportMembersQuery = {
+  format: ExportFormat;
+  voice?: Voice;
+};
+
+// Fichier renvoyé par `GET /members/export` (réponse binaire, pas de JSON).
+export type ExportedFile = {
+  blob: Blob;
+  filename: string;
+};
