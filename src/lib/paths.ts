@@ -13,6 +13,8 @@ export const paths = {
   rankings: '/rankings',
   members: '/members',
   profile: '/profile',
+  // « Modifier ma fiche » d'un compte actif (voir `RequireAuth` dans le routeur).
+  profileEdit: '/profile/edit',
   // Premier onglet de la navigation, page d'accueil après connexion.
   home: '/songs',
 } as const;

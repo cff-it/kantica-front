@@ -1,5 +1,7 @@
 import type { User } from '@/types';
 
+import type { ProfileInput } from './schemas';
+
 // Réponse de POST /auth/login (AuthController::login).
 export type LoginResponse = {
   token: string;
@@ -10,4 +12,11 @@ export type LoginResponse = {
 export type RegisterResponse = {
   token: string;
   user: User;
+};
+
+// Corps de PUT /me/profile (UpdateOwnProfileRequest). `voice` est la voix
+// précise (S1, A2...) : le formulaire ne la saisit pas, il renvoie celle de la
+// fiche pour ne pas l'effacer (voir `getVoiceToKeep`).
+export type UpdateOwnProfileInput = ProfileInput & {
+  voice?: string;
 };

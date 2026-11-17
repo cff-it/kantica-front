@@ -36,24 +36,31 @@ export const registerSchema = z
 
 export type RegisterInput = z.infer<typeof registerSchema>;
 
-// UpdateOwnProfileRequest. La voix précise (S1, S2...) est facultative côté
-// back et absente de la maquette : seul le groupe de voix est saisi.
-export const profileSchema = z.object({
-  last_name: z.string().trim().min(1, 'Nom requis').max(100, 'Nom trop long'),
-  first_name: z
-    .string()
-    .trim()
-    .min(1, 'Prénom requis')
-    .max(100, 'Prénom trop long'),
-  // Valeurs de l'enum VoicePart du back.
-  voice_group: z.enum(['S', 'A', 'T', 'B'], {
-    error: 'Choisissez votre voix',
-  }),
-  phone: z
-    .string()
-    .trim()
-    .min(1, 'Téléphone requis')
-    .max(30, 'Téléphone trop long'),
+// Valeurs de l'enum VoicePart du back.
+const voiceGroupSchema = z.enum(['S', 'A', 'T', 'B'], {
+  error: 'Choisissez votre voix',
 });
 
-export type ProfileInput = z.infer<typeof profileSchema>;
+// UpdateOwnProfileRequest. La voix précise (S1, S2...) est facultative côté
+// back et absente de la maquette : seul le groupe de voix est saisi.
+// Le groupe de voix n'est obligatoire que si le membre peut encore le modifier
+// (`canUpdateOwnVoice`) : une fois la voix réservée, le formulaire ne la saisit
+// plus et la requête ne l'envoie pas.
+export function createProfileSchema(voiceEditable: boolean) {
+  return z.object({
+    last_name: z.string().trim().min(1, 'Nom requis').max(100, 'Nom trop long'),
+    first_name: z
+      .string()
+      .trim()
+      .min(1, 'Prénom requis')
+      .max(100, 'Prénom trop long'),
+    voice_group: voiceEditable ? voiceGroupSchema : voiceGroupSchema.optional(),
+    phone: z
+      .string()
+      .trim()
+      .min(1, 'Téléphone requis')
+      .max(30, 'Téléphone trop long'),
+  });
+}
+
+export type ProfileInput = z.infer<ReturnType<typeof createProfileSchema>>;

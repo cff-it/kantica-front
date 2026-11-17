@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router';
 
 import { ComingSoon } from '@/components/common/coming-soon';
 import {
+  EditProfilePage,
   ForgotPasswordPage,
   LoginPage,
   LogoutButton,
@@ -124,6 +125,13 @@ export const router = createBrowserRouter([
               </>
             ),
             handle: { title: 'Profil' },
+          },
+          {
+            // « Modifier ma fiche » d'un compte actif. Pas encore de lien
+            // d'entrée : l'écran Profil n'est pas construit (voir CLAUDE.md).
+            path: paths.profileEdit,
+            element: <EditProfilePage />,
+            handle: { title: 'Fiche de choriste' },
           },
         ],
       },

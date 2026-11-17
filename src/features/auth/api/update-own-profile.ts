@@ -1,11 +1,11 @@
 import { apiClient } from '@/lib/api-client';
 import type { MemberProfile } from '@/types';
 
-import type { ProfileInput } from '../schemas';
+import type { UpdateOwnProfileInput } from '../types';
 
 // Crée la fiche de recensement de l'utilisateur courant, ou la met à jour.
 export async function updateOwnProfile(
-  input: ProfileInput,
+  input: UpdateOwnProfileInput,
 ): Promise<MemberProfile> {
   const { data } = await apiClient.put<{ data: MemberProfile }>(
     '/me/profile',
