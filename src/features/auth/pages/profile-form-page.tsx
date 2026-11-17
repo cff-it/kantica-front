@@ -30,7 +30,7 @@ export function ProfileFormPage() {
         description="Ces informations restent au sein de la chorale."
       />
       <div className="mt-8 flex flex-1 flex-col lg:flex-none">
-        <ProfileForm user={user} />
+        <ProfileForm user={user} returnTo={paths.pendingAccount} />
       </div>
     </AuthPanel>
   );
