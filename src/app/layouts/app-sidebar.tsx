@@ -1,3 +1,4 @@
+import { ChevronRight } from 'lucide-react';
 import { NavLink } from 'react-router';
 
 import logo from '@/assets/brand/logo-cff.png';
@@ -13,8 +14,10 @@ import { NAV_ITEMS } from './nav-items';
 
 // Barre latérale du grand écran (dès `lg`), maquettes web : marque en haut,
 // entrées de navigation selon le rôle, carte de l'utilisateur en bas qui ouvre
-// le profil. Sous `lg`, c'est la barre d'onglets du bas qui la remplace (voir
-// `AppLayout`) : la largeur `w-62` est répétée dans le layout.
+// le profil. Le bouton de thème est une languette flottante collée au bord
+// gauche de l'écran (`ThemeHandle`). Sous `lg`, c'est la barre d'onglets du
+// bas qui la remplace (voir `AppLayout`) : la largeur `w-62` est répétée dans
+// le layout.
 export function AppSidebar() {
   const { data: user } = useCurrentUser();
   const items = NAV_ITEMS.filter(
@@ -87,8 +90,7 @@ export function AppSidebar() {
         </ul>
       </nav>
 
-      <div className="space-y-3 p-4">
-        <ThemeToggle className="ml-auto flex" />
+      <div className="p-4">
         {person ? (
           <NavLink
             to={paths.profile}
@@ -118,6 +120,38 @@ export function AppSidebar() {
           </NavLink>
         ) : null}
       </div>
+
+      <ThemeHandle />
     </aside>
+  );
+}
+
+// Languette flottante collée au bord gauche de l'écran, juste au-dessus de la
+// carte de l'utilisateur : seule la flèche est visible au repos ; au survol ou
+// au focus clavier (`focus-within`), elle s'élargit vers la droite et révèle
+// le bouton de thème. Le bouton reste dans le DOM, donc atteignable au clavier
+// même replié.
+function ThemeHandle() {
+  return (
+    <div
+      className={cn(
+        'group absolute bottom-24 left-0 z-10 flex h-11 w-5 items-center',
+        'overflow-hidden rounded-r-full border border-l-0 bg-card shadow-sm',
+        'transition-[width] duration-200 ease-out motion-reduce:transition-none',
+        'hover:w-16 focus-within:w-16',
+      )}
+    >
+      <span className="flex w-5 shrink-0 items-center justify-center">
+        <ChevronRight
+          className={cn(
+            'size-4 text-muted-foreground transition-transform duration-200',
+            'group-hover:rotate-180 group-focus-within:rotate-180',
+            'motion-reduce:transition-none',
+          )}
+          aria-hidden
+        />
+      </span>
+      <ThemeToggle className="size-9 shrink-0" />
+    </div>
   );
 }

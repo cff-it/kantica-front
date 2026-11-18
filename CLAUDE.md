@@ -433,7 +433,8 @@ affichent `<ComingSoon />` : ne pas y inventer d'interface.
 **Web (dès `lg`)** : la barre d'onglets cède la place à une barre latérale à gauche
 (`app/layouts/app-sidebar.tsx`, maquettes `01-Lot1-Recensement/web`) : marque en haut, mêmes entrées sauf
 Profil, carte de l'utilisateur en bas (initiales, nom, « Rôle · Voix ») qui ouvre `/profile`, bouton de
-thème juste au-dessus. Le contenu passe sur fond grisé (`bg-muted/50`). Sous `lg` (mobile et tablette), la
+thème en languette flottante collée au bord gauche de l'écran, au-dessus de la carte (`ThemeHandle`) : seule la
+flèche « > » est visible, le bouton apparaît au survol ou au focus clavier. Le contenu passe sur fond grisé (`bg-muted/50`). Sous `lg` (mobile et tablette), la
 barre d'onglets est conservée. Écarts connus avec les maquettes : l'entrée « Accueil » (première des
 maquettes web et mobile) est absente, faute d'écran ; la maquette mobile retire « Profil » des onglets (le
 profil s'ouvre depuis l'avatar de l'accueil), ce qui est impossible tant que l'accueil n'existe pas.
