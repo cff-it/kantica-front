@@ -7,6 +7,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 
+import { paths } from '@/lib/paths';
 import type { Role } from '@/types';
 
 export type NavItem = {
@@ -15,19 +16,22 @@ export type NavItem = {
   icon: LucideIcon;
   // Absent : l'onglet est visible par tous les rôles.
   roles?: Role[];
+  // `false` : absent de la barre latérale du grand écran (le profil s'ouvre
+  // depuis la carte de l'utilisateur, en bas de la barre).
+  sidebar?: false;
 };
 
 // Onglets de la barre de navigation, dans l'ordre de la maquette
 // 06-Administration-et-navigation/04-Navigation-par-role.
 export const NAV_ITEMS: NavItem[] = [
-  { to: '/repertoire', label: 'Répertoire', icon: BookOpen },
-  { to: '/messes', label: 'Messes', icon: CalendarDays },
-  { to: '/classements', label: 'Classements', icon: Trophy },
+  { to: paths.songs, label: 'Répertoire', icon: BookOpen },
+  { to: paths.masses, label: 'Messes', icon: CalendarDays },
+  { to: paths.rankings, label: 'Classements', icon: Trophy },
   {
-    to: '/membres',
+    to: paths.members,
     label: 'Membres',
     icon: Users,
     roles: ['admin', 'secretaire'],
   },
-  { to: '/profil', label: 'Profil', icon: UserRound },
+  { to: paths.profile, label: 'Profil', icon: UserRound, sidebar: false },
 ];

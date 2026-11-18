@@ -18,8 +18,9 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
-      // Sanctum en mode SPA (cookies) : le front et l'API doivent partager la
-      // même origine côté navigateur. Le proxy évite CORS et cookies tiers.
+      // Sanctum en mode jeton Bearer : plus de cookies, mais l'API reste servie
+      // sur l'origine du front, ce qui évite CORS. `/sanctum` n'est plus
+      // utilisé, conservé sans effet.
       proxy: {
         '/api': { target: apiTarget, changeOrigin: true },
         '/sanctum': { target: apiTarget, changeOrigin: true },
