@@ -1,6 +1,7 @@
 import { PageHeader } from '@/components/common/page-header';
 
 import { ExportMembersDialog } from '../components/export-members-dialog';
+import { ImportMembersLink } from '../components/import-members-link';
 import { MembersResults } from '../components/members-results';
 import { MembersSearchField } from '../components/members-search-field';
 import { VoiceFilter } from '../components/voice-filter';
@@ -22,10 +23,13 @@ export function MembersListPage() {
         title="Membres"
         description={meta ? getRegisteredLabel(meta.registered_count) : undefined}
         actions={
-          <ExportMembersDialog
-            count={getExportCount(meta, filters.voice)}
-            voice={filters.voice}
-          />
+          <div className="grid w-full grid-cols-2 gap-3 sm:flex sm:w-auto">
+            <ImportMembersLink />
+            <ExportMembersDialog
+              count={getExportCount(meta, filters.voice)}
+              voice={filters.voice}
+            />
+          </div>
         }
       />
       <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">

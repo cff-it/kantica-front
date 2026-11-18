@@ -6,6 +6,8 @@ import {
 } from '@/lib/phone';
 import { phonesSchema } from '@/lib/phone-schema';
 
+import { IMPORT_FILE_MAX_BYTES } from './imports';
+
 // Valeurs de l'enum VoicePart du back.
 const voiceGroupSchema = z.enum(['S', 'A', 'T', 'B'], {
   error: 'Choisissez la voix',
@@ -73,3 +75,20 @@ export const memberRecordSchema = z.object({
 });
 
 export type MemberRecordInput = z.infer<typeof memberRecordSchema>;
+
+// Fichier d'import (ImportUsersRequest du back : .xlsx, 5 Mo). Ces deux règles
+// sont contrôlées avant l'envoi, pour ne pas téléverser un fichier refusé
+// d'avance ; les autres refus (illisible, colonnes manquantes, plus de 500
+// lignes) viennent du back en 422, sur le champ `file`.
+export const importFileSchema = z.object({
+  file: z
+    .instanceof(File, { error: 'Choisissez un fichier Excel.' })
+    .refine((file) => /\.xlsx$/i.test(file.name), {
+      error: 'Le fichier doit être au format Excel (.xlsx).',
+    })
+    .refine((file) => file.size <= IMPORT_FILE_MAX_BYTES, {
+      error: 'Le fichier ne doit pas dépasser 5 Mo.',
+    }),
+});
+
+export type ImportFileInput = z.infer<typeof importFileSchema>;

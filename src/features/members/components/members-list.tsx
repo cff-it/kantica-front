@@ -9,23 +9,10 @@ import { cn } from '@/lib/utils';
 
 import type { MemberListItem } from '../types';
 import { MemberAvatar } from './member-avatar';
+import { MemberName } from './member-name';
 
 // Valeur affichée quand une coordonnée n'est pas renseignée.
 const EMPTY_VALUE = '-';
-
-type MemberProps = {
-  member: MemberListItem;
-};
-
-// « NOM Prénom » : le nom en gras et en majuscules, comme sur la maquette.
-function MemberName({ member }: MemberProps) {
-  return (
-    <>
-      <span className="font-bold uppercase">{member.last_name}</span>
-      {member.first_name ? ` ${member.first_name}` : null}
-    </>
-  );
-}
 
 // Téléphone d'un membre : un numéro par ligne (il peut en avoir plusieurs),
 // « - » quand il n'en a pas.

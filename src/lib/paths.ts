@@ -12,6 +12,10 @@ export const paths = {
   masses: '/masses',
   rankings: '/rankings',
   members: '/members',
+  // Import Excel : le segment fixe `import` l'emporte sur `:id` de `member`.
+  membersImport: '/members/import',
+  membersImportReview: '/members/import/review',
+  membersImportReport: '/members/import/:id',
   member: '/members/:id',
   memberEdit: '/members/:id/edit',
   profile: '/profile',
@@ -24,6 +28,11 @@ export const paths = {
 // Chemin de la fiche d'un membre (`paths.member` est le motif de la route).
 export function getMemberPath(id: number): string {
   return `${paths.members}/${id}`;
+}
+
+// Chemin du rapport d'un import (`paths.membersImportReport` est le motif).
+export function getMembersImportReportPath(id: number): string {
+  return `${paths.membersImport}/${id}`;
 }
 
 // Chemin de « Modifier la fiche » d'un membre (`paths.memberEdit` est le motif).
