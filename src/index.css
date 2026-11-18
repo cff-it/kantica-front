@@ -152,6 +152,12 @@
     @apply border-border outline-ring/50;
   }
 
+  /* Un champ focalisé (premier champ en erreur d'un formulaire) ne se cale pas
+     sous un en-tête collant, comme celui de « Modifier la fiche ». */
+  html {
+    @apply scroll-pt-24;
+  }
+
   /* Texte courant à 16 px minimum : lisible par tous les choristes. */
   body {
     @apply bg-background font-sans text-base text-foreground antialiased;

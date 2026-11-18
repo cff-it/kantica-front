@@ -1,5 +1,7 @@
+import { isAxiosError } from 'axios';
+
 import { findVoice } from '@/lib/voices';
-import type { Voice } from '@/types';
+import type { User, Voice } from '@/types';
 
 import type { MembersMeta } from './types';
 
@@ -44,4 +46,26 @@ export function getExportScopeLabel(
   }
 
   return `${count} ${count > 1 ? 'choristes' : 'choriste'} · ${scope}`;
+}
+
+// Identifiant de la route `/members/:id` : entier positif écrit en chiffres,
+// sinon `undefined` (la page affiche « Membre introuvable » sans requête).
+export function parseMemberId(value: string | undefined): number | undefined {
+  return value && /^[1-9]\d*$/.test(value) ? Number(value) : undefined;
+}
+
+// Le back répond 404 pour un membre inconnu.
+export function isNotFoundError(error: unknown): boolean {
+  return isAxiosError(error) && error.response?.status === 404;
+}
+
+// Prénom et nom affichés : la fiche (prénoms joints) prime sur le compte.
+export function getMemberName(member: User): {
+  first_name: string | null;
+  last_name: string;
+} {
+  return {
+    first_name: member.profile?.first_name ?? null,
+    last_name: member.profile?.last_name ?? member.last_name,
+  };
 }
