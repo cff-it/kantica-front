@@ -10,7 +10,11 @@ import {
   ProfileFormPage,
   RegisterPage,
 } from '@/features/auth';
-import { MembersListPage } from '@/features/members';
+import {
+  MemberDetailPage,
+  MemberEditPage,
+  MembersListPage,
+} from '@/features/members';
 import { paths } from '@/lib/paths';
 
 import {
@@ -113,10 +117,14 @@ export const router = createBrowserRouter([
                 handle: { title: 'Membres' },
               },
               {
-                // Fiche membre à venir : les chevrons de la liste y mènent.
                 path: paths.member,
-                element: <ComingSoon title="Fiche membre" />,
+                element: <MemberDetailPage />,
                 handle: { title: 'Fiche membre' },
+              },
+              {
+                path: paths.memberEdit,
+                element: <MemberEditPage />,
+                handle: { title: 'Modifier la fiche' },
               },
             ],
           },

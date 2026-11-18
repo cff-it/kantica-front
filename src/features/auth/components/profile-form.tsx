@@ -6,14 +6,16 @@ import { toast } from 'sonner';
 
 import { ActionButton } from '@/components/common/action-button';
 import { FormField } from '@/components/common/form-field';
+import { PhoneListField } from '@/components/common/phone-list-field';
+import { VoicePicker } from '@/components/common/voice-picker';
 import { applyServerErrors } from '@/lib/form-errors';
+import { joinPhones, splitPhones } from '@/lib/phone';
 import { toVoice } from '@/lib/voices';
 import type { User } from '@/types';
 
 import { useUpdateOwnProfile } from '../hooks/use-update-own-profile';
 import { createProfileSchema, type ProfileInput } from '../schemas';
 import { canUpdateOwnVoice, getVoiceToKeep } from '../utils';
-import { VoicePicker } from './voice-picker';
 
 type ProfileFormProps = {
   user: User;
@@ -43,7 +45,8 @@ export function ProfileForm({ user, returnTo }: ProfileFormProps) {
       last_name: profile?.last_name ?? '',
       first_name: profile?.first_name ?? '',
       voice_group: voiceEditable ? toVoice(profile?.voice_group) : undefined,
-      phone: profile?.phone ?? '',
+      // Un ou plusieurs numéros, chacun relu en E.164 (« / » entre eux).
+      phone: joinPhones(splitPhones(profile?.phone)),
     },
   });
   const { errors } = form.formState;
@@ -101,13 +104,21 @@ export function ProfileForm({ user, returnTo }: ProfileFormProps) {
         />
       )}
       <div className="grid gap-6 lg:grid-cols-2 lg:gap-4">
-        <FormField
-          label="Téléphone"
-          type="tel"
-          inputMode="tel"
-          autoComplete="tel"
-          error={errors.phone?.message}
-          {...form.register('phone')}
+        <Controller
+          control={form.control}
+          name="phone"
+          render={({ field, fieldState }) => (
+            <PhoneListField
+              legend="Téléphone"
+              maxCount={2}
+              name={field.name}
+              ref={field.ref}
+              value={field.value}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              error={fieldState.error?.message}
+            />
+          )}
         />
         {/* L'email de contact est l'email du compte : le back ne l'accepte pas
             en saisie (UpdateOwnProfileRequest), il est donc en lecture seule. */}

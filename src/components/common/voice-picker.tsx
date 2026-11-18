@@ -16,7 +16,31 @@ type VoicePickerProps = {
   disabled?: boolean;
   // Texte d'aide sous les tuiles (ex. : pourquoi la voix est réservée).
   hint?: string;
+  // `form` (défaut) : formulaires de fiche, légende « Voix » visible, 2
+  // colonnes puis 4 dès `lg`. `sheet` : feuille « Attribuer la voix »
+  // (maquettes Attribution-voix), légende masquée (le titre de la feuille la
+  // remplace), liste d'une colonne avec pastille radio sous `md`, grille 2 x 2
+  // dès `md` (même bascule que `SheetDialogContent`).
+  layout?: 'form' | 'sheet';
+  // Champ obligatoire : astérisque rouge après la légende (layout `form`).
+  required?: boolean;
+  // Toujours 2 colonnes (layout `form`) : pour une carte étroite, où quatre
+  // tuiles côte à côte débordent (formulaire de fiche en deux colonnes).
+  compact?: boolean;
 };
+
+// Pastille radio de la feuille mobile : décorative, le bouton radio natif (masqué)
+// porte l'état. Elle se remplit quand la tuile (`group/tile`) est cochée.
+function RadioMark() {
+  return (
+    <span
+      aria-hidden
+      className="ml-auto flex size-6 shrink-0 items-center justify-center rounded-full border-2 border-input group-has-[:checked]/tile:border-primary group-has-[:checked]/tile:bg-primary md:hidden"
+    >
+      <span className="size-2.5 rounded-full bg-primary-foreground opacity-0 group-has-[:checked]/tile:opacity-100" />
+    </span>
+  );
+}
 
 // Choix de la voix en 4 tuiles (S, A, T, B). Boutons radio natifs masqués
 // visuellement : clavier et lecteurs d'écran fonctionnent sans code en plus.
@@ -29,9 +53,13 @@ export function VoicePicker({
   error,
   disabled = false,
   hint,
+  layout = 'form',
+  required = false,
+  compact = false,
 }: VoicePickerProps) {
   const hintId = useId();
   const errorId = useId();
+  const isSheet = layout === 'sheet';
   const describedBy =
     [hint ? hintId : null, error ? errorId : null].filter(Boolean).join(' ') ||
     undefined;
@@ -42,13 +70,29 @@ export function VoicePicker({
       aria-describedby={describedBy}
       className="min-w-0 space-y-2"
     >
-      <legend className="mb-2 text-base font-semibold">Voix</legend>
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-2">
+      <legend className={isSheet ? 'sr-only' : 'mb-2 text-base font-semibold'}>
+        Voix
+        {required && !isSheet ? (
+          <span aria-hidden className="text-destructive">
+            {' *'}
+          </span>
+        ) : null}
+      </legend>
+      <div
+        className={cn(
+          'grid gap-3',
+          isSheet
+            ? 'grid-cols-1 md:grid-cols-2'
+            : compact
+              ? 'grid-cols-2'
+              : 'grid-cols-2 lg:grid-cols-4 lg:gap-2',
+        )}
+      >
         {VOICES.map((voice) => (
           <label
             key={voice.value}
             className={cn(
-              'flex min-h-14 items-center gap-3 rounded-xl',
+              'group/tile flex min-h-14 items-center gap-3 rounded-xl',
               'border bg-background px-3 transition-colors',
               'has-enabled:cursor-pointer has-enabled:hover:bg-muted',
               'has-disabled:cursor-not-allowed',
@@ -69,6 +113,7 @@ export function VoicePicker({
             />
             <VoiceDot voice={voice.value} />
             <span className="font-semibold">{voice.label}</span>
+            {isSheet ? <RadioMark /> : null}
           </label>
         ))}
       </div>

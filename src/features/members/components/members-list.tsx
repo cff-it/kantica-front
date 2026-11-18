@@ -3,35 +3,19 @@ import { Link } from 'react-router';
 
 import { VoiceBadge } from '@/components/common/voice-badge';
 import { LG_MEDIA_QUERY, useMediaQuery } from '@/hooks/use-media-query';
-import { getInitials } from '@/lib/names';
 import { getMemberPath } from '@/lib/paths';
+import { formatPhone, splitPhones } from '@/lib/phone';
 import { cn } from '@/lib/utils';
 
-import { useMemberContact } from '../hooks/use-member-contact';
 import type { MemberListItem } from '../types';
+import { MemberAvatar } from './member-avatar';
 
-// Valeur affichée quand une coordonnée n'est pas renseignée (ou illisible).
+// Valeur affichée quand une coordonnée n'est pas renseignée.
 const EMPTY_VALUE = '-';
 
 type MemberProps = {
   member: MemberListItem;
 };
-
-// 44 px sur mobile, 36 px dans le tableau web (`className`), comme les maquettes.
-function Avatar({ member, className }: MemberProps & { className?: string }) {
-  return (
-    <span
-      aria-hidden
-      className={cn(
-        'flex size-11 shrink-0 items-center justify-center rounded-full',
-        'bg-muted text-sm font-bold text-muted-foreground ring-1 ring-border',
-        className,
-      )}
-    >
-      {getInitials(member)}
-    </span>
-  );
-}
 
 // « NOM Prénom » : le nom en gras et en majuscules, comme sur la maquette.
 function MemberName({ member }: MemberProps) {
@@ -39,6 +23,26 @@ function MemberName({ member }: MemberProps) {
     <>
       <span className="font-bold uppercase">{member.last_name}</span>
       {member.first_name ? ` ${member.first_name}` : null}
+    </>
+  );
+}
+
+// Téléphone d'un membre : un numéro par ligne (il peut en avoir plusieurs),
+// « - » quand il n'en a pas.
+function PhoneLines({ phone }: { phone: string | null }) {
+  const phones = splitPhones(phone);
+
+  if (phones.length === 0) {
+    return <>{EMPTY_VALUE}</>;
+  }
+
+  return (
+    <>
+      {phones.map((item, index) => (
+        <span key={`${index}-${item}`} className="block">
+          {formatPhone(item)}
+        </span>
+      ))}
     </>
   );
 }
@@ -73,7 +77,7 @@ function MembersRows({ members }: MembersListProps) {
             to={getMemberPath(member.id)}
             className="flex items-center gap-4 rounded-lg py-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
           >
-            <Avatar member={member} />
+            <MemberAvatar member={member} />
             <div className="min-w-0 flex-1 space-y-1.5">
               <p className="text-base">
                 <MemberName member={member} />
@@ -88,45 +92,6 @@ function MembersRows({ members }: MembersListProps) {
         </li>
       ))}
     </ul>
-  );
-}
-
-function ContactSkeleton({ className }: { className: string }) {
-  return (
-    <span
-      aria-hidden
-      className={cn('block h-4 animate-pulse rounded bg-muted', className)}
-    />
-  );
-}
-
-// Cellules Téléphone et Email d'une ligne. La liste du back ne renvoie pas
-// ces champs : ils viennent de la fiche du membre (`useMemberContact`).
-function ContactCells({ id }: { id: number }) {
-  const { data, isPending } = useMemberContact(id);
-
-  if (isPending) {
-    return (
-      <>
-        <td className="px-5 py-3">
-          <ContactSkeleton className="w-28" />
-        </td>
-        <td className="px-5 py-3">
-          <ContactSkeleton className="w-44" />
-        </td>
-      </>
-    );
-  }
-
-  return (
-    <>
-      <td className="px-5 py-3 whitespace-nowrap">
-        {data?.phone ?? EMPTY_VALUE}
-      </td>
-      <td className="px-5 py-3 whitespace-nowrap">
-        {data?.mail ?? EMPTY_VALUE}
-      </td>
-    </>
   );
 }
 
@@ -169,7 +134,7 @@ function MembersTable({ members }: MembersListProps) {
             >
               <td className="px-5 py-3">
                 <div className="flex items-center gap-4">
-                  <Avatar member={member} className="size-9 text-xs" />
+                  <MemberAvatar member={member} className="size-9 text-xs" />
                   <Link
                     to={getMemberPath(member.id)}
                     className="outline-none after:absolute after:inset-0"
@@ -181,7 +146,12 @@ function MembersTable({ members }: MembersListProps) {
               <td className="px-5 py-3">
                 <VoiceBadge voice={member.voice_group} />
               </td>
-              <ContactCells id={member.id} />
+              <td className="px-5 py-3 whitespace-nowrap">
+                <PhoneLines phone={member.phone} />
+              </td>
+              <td className="px-5 py-3 whitespace-nowrap">
+                {member.contact_mail}
+              </td>
               <td className="px-5 py-3">
                 {member.status === 'pending' ? (
                   <PendingBadge />
@@ -205,9 +175,7 @@ type MembersListProps = {
 };
 
 // Liste des membres : une seule des deux mises en page est montée, selon la
-// bascule `lg` du layout (barre latérale ou barre d'onglets). Le tableau web
-// charge les coordonnées de chaque membre : le monter sous `lg` enverrait ces
-// requêtes pour rien.
+// bascule `lg` du layout (barre latérale ou barre d'onglets).
 export function MembersList({ members }: MembersListProps) {
   const isWeb = useMediaQuery(LG_MEDIA_QUERY);
 

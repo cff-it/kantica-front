@@ -1,5 +1,6 @@
 import { VoiceBadge } from '@/components/common/voice-badge';
 import { getFullName, getInitials } from '@/lib/names';
+import { formatPhones } from '@/lib/phone';
 import { cn } from '@/lib/utils';
 import type { MemberProfile } from '@/types';
 
@@ -30,7 +31,7 @@ export function MemberSummaryCard({
       <div className="min-w-0 flex-1">
         <p className="font-semibold break-words">{getFullName(profile)}</p>
         <p className="truncate text-muted-foreground">
-          {profile.phone}
+          {formatPhones(profile.phone, ' / ')}
           <span className="hidden lg:inline"> · {profile.contact_mail}</span>
         </p>
       </div>

@@ -13,6 +13,7 @@ export const paths = {
   rankings: '/rankings',
   members: '/members',
   member: '/members/:id',
+  memberEdit: '/members/:id/edit',
   profile: '/profile',
   // « Modifier ma fiche » d'un compte actif (voir `RequireAuth` dans le routeur).
   profileEdit: '/profile/edit',
@@ -23,6 +24,11 @@ export const paths = {
 // Chemin de la fiche d'un membre (`paths.member` est le motif de la route).
 export function getMemberPath(id: number): string {
   return `${paths.members}/${id}`;
+}
+
+// Chemin de « Modifier la fiche » d'un membre (`paths.memberEdit` est le motif).
+export function getMemberEditPath(id: number): string {
+  return `${getMemberPath(id)}/edit`;
 }
 
 // Destination d'un compte « en attente » : tant que sa fiche n'est pas

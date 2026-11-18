@@ -1,5 +1,8 @@
 import { z } from 'zod';
 
+import { PROFILE_PHONES_MAX_LENGTH } from '@/lib/phone';
+import { phonesSchema } from '@/lib/phone-schema';
+
 // Le back attend le champ `mail` (LoginRequest), pas `email`. L'email est
 // nettoyé avant validation : l'autocomplétion des claviers mobiles ajoute
 // souvent une espace finale. Le mot de passe, lui, n'est jamais modifié.
@@ -55,11 +58,8 @@ export function createProfileSchema(voiceEditable: boolean) {
       .min(1, 'Prénom requis')
       .max(100, 'Prénom trop long'),
     voice_group: voiceEditable ? voiceGroupSchema : voiceGroupSchema.optional(),
-    phone: z
-      .string()
-      .trim()
-      .min(1, 'Téléphone requis')
-      .max(30, 'Téléphone trop long'),
+    // Un ou plusieurs numéros E.164 joints par « / » (`PhoneListField`).
+    phone: phonesSchema('Téléphone requis', PROFILE_PHONES_MAX_LENGTH),
   });
 }
 
