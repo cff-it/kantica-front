@@ -91,8 +91,107 @@ export type ExportMembersQuery = {
   voice?: Voice;
 };
 
-// Fichier renvoyé par `GET /members/export` (réponse binaire, pas de JSON).
+// Fichier renvoyé par `GET /members/export` ou par le téléchargement du modèle
+// d'import (réponse binaire, pas de JSON).
 export type ExportedFile = {
   blob: Blob;
   filename: string;
 };
+
+// ── Import Excel des membres (back : `/users/import`) ─────────────────────
+
+// UserImportStatus : `pending` et `running` sont des imports en tâche de fond.
+export type ImportStatus = 'pending' | 'running' | 'completed' | 'failed';
+
+// UserImportIssueDTO : ligne du fichier qui ne sera pas (ou n'a pas été)
+// importée. `line` est le numéro de ligne dans Excel (l'en-tête est la ligne 1),
+// `name` le « NOM Prénom » lu sur la ligne.
+export type ImportIssue = {
+  line: number;
+  name: string | null;
+  message: string;
+};
+
+// UserImportRowDTO::toReviewArray : ligne valide, prête ou importée. `voice`
+// est le groupe de voix (S, A, T ou B).
+export type ImportRow = {
+  line: number;
+  last_name: string;
+  first_name: string;
+  voice: string;
+  mail: string;
+};
+
+// Chiffres d'un import (UsersImportReportDTO) ; c'est aussi le `summary` de
+// l'historique.
+export type ImportSummary = {
+  total: number;
+  created: number;
+  skipped_count: number;
+  error_count: number;
+  warning_count: number;
+};
+
+// UsersImportPreviewResource : aperçu avant import, rien n'est écrit.
+export type ImportPreview = {
+  total: number;
+  ready_count: number;
+  skipped_count: number;
+  error_count: number;
+  warning_count: number;
+  ready: ImportRow[];
+  skipped: ImportIssue[];
+  errors: ImportIssue[];
+  warnings: ImportIssue[];
+  ignored_columns: string[];
+};
+
+// Rapport final (UsersImportReportDTO::toArray). `imported` manque aux
+// rapports enregistrés avant son ajout au back : la liste est alors masquée.
+export type ImportReport = ImportSummary & {
+  skipped: ImportIssue[];
+  errors: ImportIssue[];
+  warnings: ImportIssue[];
+  ignored_columns: string[];
+  imported?: ImportRow[];
+};
+
+// `processed` et `total` comptent des étapes (un compte, une photo), pas des
+// lignes du fichier.
+export type ImportProgress = {
+  processed: number;
+  total: number;
+  percent: number;
+};
+
+// Qui a lancé l'import.
+export type ImportAuthor = {
+  id: number;
+  last_name: string;
+  first_name: string | null;
+};
+
+// UserImportResource : détail d'un import. `file_name` est null pour les
+// imports lancés avant son ajout au back ; `report` et `finished_at` restent
+// null tant que l'import n'est pas terminé ; `error` n'est posé que si le
+// statut est `failed`.
+export type MemberImport = {
+  id: number;
+  status: ImportStatus;
+  file_name: string | null;
+  user: ImportAuthor;
+  created_at: string;
+  finished_at: string | null;
+  progress: ImportProgress;
+  report: ImportReport | null;
+  error: string | null;
+};
+
+// UserImportListItemResource : une ligne de l'historique, sans le rapport
+// complet. `summary` est null tant que l'import n'est pas terminé (ou s'il a
+// échoué avant d'écrire son rapport).
+export type MemberImportListItem = Omit<MemberImport, 'report'> & {
+  summary: ImportSummary | null;
+};
+
+export type MemberImportsPage = Paginated<MemberImportListItem>;

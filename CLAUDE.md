@@ -46,7 +46,7 @@ src/
 │   │   ├── schemas.ts        # Schémas Zod
 │   │   ├── types.ts          # Types de la feature
 │   │   └── index.ts          # API publique de la feature
-│   ├── members/              # Lot 1 : liste, fiche, export
+│   ├── members/              # Lot 1 : liste, fiche, export, import Excel
 │   ├── songs/                # Répertoire des cantiques (lot ultérieur)
 │   ├── masses/               # Messes + PPTX (lot ultérieur)
 │   └── attendance/           # Présences + classements (lot ultérieur)
@@ -79,7 +79,7 @@ src/
 │   ├── dates.ts              # Dates de la fiche : lecture de la saisie (jj/mm/aaaa, mm/aaaa, aaaa) et écriture du choix du sélecteur
 │   ├── phone.ts              # Téléphones : liste des pays et drapeaux, saisie vers E.164, validation, affichage international
 │   ├── phone-schema.ts       # phonesSchema() : règle Zod d'un ou plusieurs numéros (members et auth)
-│   └── utils.ts              # cn(), formatage de dates
+│   └── utils.ts              # cn(), formatage de dates et d'heures (formatShortDate, formatTime)
 │
 ├── assets/brand/             # Logo et filigranes (PNG transparents, voir Points d'attention)
 ├── hooks/                    # Hooks génériques sans métier (useDebounce, useMediaQuery, useRouteTitle)
@@ -410,6 +410,10 @@ héritent de la charte sans retouche.
 - Badges de voix (Soprano, Alto, Ténor, Basse), `success` et `warning` : tokens codés dans `src/index.css`,
   valeurs du mode clair relevées sur les maquettes du lot 1, valeurs du mode sombre dérivées. Les classes
   de chaque voix sont dans `lib/voices.ts`, le rendu dans `components/common/voice-badge.tsx`.
+- Tokens de l'import Excel (`success-soft`, `failure`, `excel`) : valeurs du mode clair relevées sur les maquettes
+  `08` et `09` du lot 1, mode sombre dérivé. `failure` est le rouge foncé des imports en échec, distinct du rouge CFF
+  (`destructive`) ; `excel` est le vert de la pastille XLSX. Les tuiles bleues et ambre réutilisent `secondary` et
+  `warning`.
 - Couleurs liturgiques : définies dans la charte, pas encore codées. Ajouter leurs tokens quand un écran
   en a besoin, en relevant les valeurs sur la maquette.
 
@@ -644,6 +648,57 @@ Routes `/members/:id` (`paths.member`, `MemberDetailPage`) et `/members/:id/edit
   l'erreur est un `Blob`, il n'est pas lu. `useExportMembers` est en `networkMode: 'always'`, comme
   `useLogin`.
 
+## Import de membres (Excel)
+
+Routes `/members/import` (`paths.membersImport`, `ImportMembersPage`), `/members/import/review`
+(`paths.membersImportReview`, `ImportReviewPage`) et `/members/import/:id` (`paths.membersImportReport`,
+`ImportReportPage`, `getMembersImportReportPath(id)`), sous `RequireRole` (`admin`, `secretaire`). Le segment
+statique `import` passe avant `/members/:id`. Maquettes `01-Lot1-Recensement/{mobile,web}/08-Import-membres-Excel`
+et `09-Import-membres-verification`. Entrée : bouton « Importer (Excel) » (`ImportMembersLink`) à côté de
+« Exporter » dans l'en-tête de la liste.
+
+- **Back** (`/api/users/import`) : `GET /template` (modèle xlsx), `POST /preview` (multipart `file`, lecture seule,
+  renvoie l'aperçu), `POST /` (202, import asynchrone en file d'attente), `GET /?page=` (historique, 20 par page) et
+  `GET /{id}` (suivi, puis rapport). 403 pour un autre rôle, et pour l'import d'un autre utilisateur (sauf admin).
+  Le champ `file_name` vient d'une migration (`php artisan migrate` avant de tester) ; sans elle, l'historique
+  affiche « Import sans nom ».
+- **Le fichier traverse deux écrans** : `ImportMembersLayout` (route sans chemin) porte le formulaire RHF
+  (`importFileSchema`, champ `file`) et l'aperçu ; les pages les lisent par `useImportFlow()` (contexte de l'`Outlet`),
+  car un `File` ne passe pas par l'URL. La vérification sans fichier ni aperçu (rechargement de la page) renvoie à
+  `/members/import`. Le rapport est **hors du layout** : l'état du parcours est oublié en y arrivant.
+- **Validation** : `.xlsx` et 5 Mo au plus côté client (message sous la zone de dépôt, bouton « Vérifier le
+  fichier » désactivé tant que le schéma refuse le fichier). Le 422 du back (extension, taille, fichier illisible,
+  colonnes manquantes, plus de 500 lignes) est posé sur `file` par `applyServerErrors` ; toute autre erreur ouvre un
+  toast. Les mutations sont en `networkMode: 'always'`.
+- **Barre d'actions** (`ImportActionBar`) : fixe au-dessus de la barre d'onglets sous `lg` (les pages ajoutent
+  `pb-24` ou `pb-36`), rangée alignée à droite dès `lg`. Ses boutons sont hors du `<form>` et le soumettent par
+  l'attribut `form`.
+- **Vérification** : tuiles (prêts, à corriger, et « déjà présents » seulement s'il y en a : la maquette n'en montre
+  pas), lignes à corriger et lignes ignorées (`ImportIssuesSection`, cartes ou tableau), puis les quatre premiers
+  choristes prêts (`IMPORT_ROWS_VISIBLE`) et « et N autres choristes ». « Importer N membres » lance l'import et
+  remplace l'écran par le rapport (`navigate` avec `replace`).
+- **Suivi** : le rapport interroge `GET /{id}` toutes les 2 s (`IMPORT_POLL_INTERVAL_MS`) tant que le statut est
+  `pending` ou `running`, avec une barre de progression (`ImportProgressCard`, écran absent des maquettes). À la fin,
+  `memberKeys.all` et `memberImportKeys.lists()` sont invalidés (la liste et l'historique se mettent à jour). Un
+  import `failed` affiche le `error` du back tel quel : il rappelle déjà que les membres déjà créés sont conservés
+  (une transaction par ligne), le front n'y ajoute rien.
+- **Rapport** : même présentation que la vérification, sans le bouton « Importer ». `report.imported[]` (`line`,
+  `last_name`, `first_name`, `voice`, `mail`) manque aux rapports enregistrés avant son ajout : la section « Membres
+  importés » est alors masquée. Les `warnings` du back ne sont pas affichés (point ouvert, la maquette n'en a pas).
+- **Historique** (`ImportHistory`) : tableau dès `lg`, cartes en dessous (`useMediaQuery`), du plus récent au plus
+  ancien, avec chargement, erreur, état vide et pagination (`MembersPagination`). Il suit les imports en cours.
+  Le statut vient de `getImportOutcome` (`imports.ts`) : En cours (`pending`, `running`), Échec (`failed`, ou terminé
+  sans aucun membre créé et avec des erreurs), Partiel (terminé avec des erreurs), sinon Terminé. « Lignes » est
+  `summary.total`.
+- **Écarts avec les maquettes** : la carte du fichier choisi affiche sa taille (« 5 Ko ») et non « 42 lignes »
+  (le nombre de lignes n'est connu qu'après l'aperçu) ; seul `.xlsx` est annoncé ; sous `lg`, la barre d'actions
+  est posée au-dessus de la barre d'onglets, que la maquette n'a pas ; l'écran de progression et la tuile « déjà
+  présents » sont ajoutés.
+- **Vérifié** contre un faux back qui reprend la forme des Resources (390 px et 1440 px, clair et sombre) : choix du
+  fichier, aperçu, 422, `.pdf` et 6 Mo refusés, import avec progression, rapport, historique (quatre statuts),
+  403 et 404. **Non vérifié contre le vrai back** : un aperçu et un import réels d'un fichier Excel (aucun compte
+  admin ou secrétaire connu dans la base de dev, migration `file_name` non jouée).
+
 ---
 
 ## Docker
@@ -739,3 +794,5 @@ npm run lint     # ESLint
      pagination (voir « Liste des membres »)
    - [x] KAN-60 : fiche membre (identité, contacts, validation d'un compte en attente, changement de voix,
      modification de la fiche ; voir « Fiche membre »)
+   - [x] KAN-62 : import Excel (modèle, envoi, vérification, rapport, historique ; voir « Import de membres
+     (Excel) »)

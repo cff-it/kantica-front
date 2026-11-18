@@ -11,6 +11,10 @@ import {
   RegisterPage,
 } from '@/features/auth';
 import {
+  ImportMembersLayout,
+  ImportMembersPage,
+  ImportReportPage,
+  ImportReviewPage,
   MemberDetailPage,
   MemberEditPage,
   MembersListPage,
@@ -115,6 +119,29 @@ export const router = createBrowserRouter([
                 path: paths.members,
                 element: <MembersListPage />,
                 handle: { title: 'Membres' },
+              },
+              {
+                // Import Excel : ce layout sans chemin garde le fichier choisi
+                // entre le choix et la vérification. Le rapport est hors du
+                // layout : en y arrivant, l'état du parcours est oublié.
+                element: <ImportMembersLayout />,
+                children: [
+                  {
+                    path: paths.membersImport,
+                    element: <ImportMembersPage />,
+                    handle: { title: 'Importer des membres' },
+                  },
+                  {
+                    path: paths.membersImportReview,
+                    element: <ImportReviewPage />,
+                    handle: { title: 'Vérification' },
+                  },
+                ],
+              },
+              {
+                path: paths.membersImportReport,
+                element: <ImportReportPage />,
+                handle: { title: "Rapport d'import" },
               },
               {
                 path: paths.member,

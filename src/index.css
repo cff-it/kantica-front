@@ -53,6 +53,14 @@
   --success: #2e7d5b; /* Critère satisfait */
   --warning: #fdf4e1; /* Fond du badge « En attente de validation » */
   --warning-foreground: #8a5a00;
+  /* Historique des imports (lot 1, maquette 08) : badges « Terminé » et
+     « Échec » (rouge foncé, distinct du rouge CFF), icône XLSX. */
+  --success-soft: #e8f4ee;
+  --success-soft-foreground: #1e6545;
+  --failure: #fce8e6;
+  --failure-foreground: #9e1b1b;
+  --excel: #1e6b45;
+  --excel-foreground: #ffffff;
   --voice-s: #fcefd3; /* Soprano */
   --voice-s-foreground: #85570a;
   --voice-a: #f7e1ec; /* Alto */
@@ -92,6 +100,12 @@
   --success: #5fbf93;
   --warning: #3a2f14;
   --warning-foreground: #f0c36b;
+  --success-soft: #1b3a31;
+  --success-soft-foreground: #7fd1b4;
+  --failure: #3b1f1d;
+  --failure-foreground: #f0a39d;
+  --excel: #1e6b45;
+  --excel-foreground: #ffffff;
   --voice-s: #3a2f14;
   --voice-s-foreground: #f0c36b;
   --voice-a: #3b2230;
@@ -132,6 +146,12 @@
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
+  --color-success-soft: var(--success-soft);
+  --color-success-soft-foreground: var(--success-soft-foreground);
+  --color-failure: var(--failure);
+  --color-failure-foreground: var(--failure-foreground);
+  --color-excel: var(--excel);
+  --color-excel-foreground: var(--excel-foreground);
   --color-voice-s: var(--voice-s);
   --color-voice-s-foreground: var(--voice-s-foreground);
   --color-voice-a: var(--voice-a);
