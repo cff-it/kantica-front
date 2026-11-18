@@ -1,13 +1,16 @@
 import { useId, type ComponentProps, type ReactNode } from 'react';
 
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+
+import { FieldLabel } from './field-label';
 
 type FormFieldProps = ComponentProps<typeof Input> & {
   label: string;
   error?: string;
   hint?: ReactNode;
+  // Mention « (facultatif) » après le libellé.
+  optional?: boolean;
   // Élément posé à droite, dans la saisie (par exemple l'œil d'un mot de
   // passe). Il doit se positionner lui-même en `absolute` ; la saisie réserve
   // la place avec un padding droit.
@@ -21,7 +24,9 @@ export function FormField({
   label,
   error,
   hint,
+  optional,
   trailing,
+  required,
   id,
   className,
   ...inputProps
@@ -36,12 +41,13 @@ export function FormField({
 
   return (
     <div className="space-y-2">
-      <Label htmlFor={inputId} className="text-base font-semibold">
+      <FieldLabel htmlFor={inputId} required={required} optional={optional}>
         {label}
-      </Label>
+      </FieldLabel>
       <div className="relative">
         <Input
           id={inputId}
+          required={required}
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy}
           className={cn(

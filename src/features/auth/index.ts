@@ -19,3 +19,4 @@ export {
   type ProfileInput,
   type RegisterInput,
 } from './schemas';
+export { getVoiceToKeep } from './utils';

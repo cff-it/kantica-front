@@ -56,13 +56,19 @@ src/
 │   └── common/               # Composants partagés : PageHeader, RoleGuard, ComingSoon, Toaster,
 │                             # FormField, PasswordField (FormField + œil afficher/masquer, à utiliser pour tout
 │                             # mot de passe), ActionButton (enveloppes de shadcn), AuthPanel, AuthHeading,
-│                             # BrandMark, Watermark, ThemeToggle, VoiceBadge, SheetDialogContent (modale :
-│                             # feuille en bas sur mobile, fenêtre centrée dès `md`)
+│                             # BrandMark, Watermark, ThemeToggle, VoiceBadge, VoicePicker (choix de la voix :
+│                             # `layout` « form » ou « sheet »), SheetDialogContent (modale : feuille en bas
+│                             # sur mobile, fenêtre centrée dès `md`), FieldLabel (libellé avec astérisque ou
+│                             # « (facultatif) »), FormTextarea, ChoiceChips (choix multiple en pastilles),
+│                             # DateField (champ de date en lecture seule qui ouvre le sélecteur), DatePickerDialog (sélecteur
+│                             # à précision : année, mois ou jour), PhoneField (téléphone : drapeau, pays et numéro
+│                             # national, valeur en E.164), PhoneListField (plusieurs numéros, un par ligne)
 │
 ├── lib/
 │   ├── api-client.ts         # Instance Axios unique (jeton Bearer, intercepteur 401)
 │   ├── auth-token.ts         # Jeton Bearer : lecture, écriture, effacement (localStorage)
 │   ├── download-file.ts      # downloadBlob() et nom de fichier de Content-Disposition (exports)
+│   ├── clipboard.ts          # copyText() : copie dans le presse-papiers, avec repli
 │   ├── query-client.ts       # Configuration TanStack Query
 │   ├── form-errors.ts        # Mapping des erreurs 422 Laravel vers React Hook Form
 │   ├── page-title.ts         # APP_NAME et format du titre de l'onglet
@@ -70,6 +76,9 @@ src/
 │   ├── roles.ts              # hasAnyRole() et getRoleLabel() : guards, navigation, carte de l'utilisateur
 │   ├── names.ts              # getFullName(), getInitials() : prénom, nom et avatars
 │   ├── voices.ts             # Les 4 voix : libellés et classes de couleur
+│   ├── dates.ts              # Dates de la fiche : lecture de la saisie (jj/mm/aaaa, mm/aaaa, aaaa) et écriture du choix du sélecteur
+│   ├── phone.ts              # Téléphones : liste des pays et drapeaux, saisie vers E.164, validation, affichage international
+│   ├── phone-schema.ts       # phonesSchema() : règle Zod d'un ou plusieurs numéros (members et auth)
 │   └── utils.ts              # cn(), formatage de dates
 │
 ├── assets/brand/             # Logo et filigranes (PNG transparents, voir Points d'attention)
@@ -468,16 +477,156 @@ chargement du JS) est le nom seul.
   lignes empilées sous `lg`, tableau dès `lg` (Nom, Voix, Téléphone, Email, Statut, maquette
   `web/05-Liste-membres`). Chaque ligne est un lien vers la fiche (`getMemberPath(id)` de `lib/paths.ts`,
   motif `paths.member`) avec son chevron de fin de ligne, décoratif ; en web le lien est sur le nom et
-  couvre toute la ligne. La route `/members/:id` affiche `<ComingSoon />` en attendant la fiche membre.
-- **Téléphone et Email** : `MemberListItemResource` ne les renvoie pas. Chaque ligne du tableau lit donc la
-  fiche (`GET /api/members/{id}`, `useMemberContact`, même clé de cache que la future fiche, `staleTime` de
-  5 min) : 20 requêtes pour une page pleine. Elles ne partent que dès `lg`, jamais sur mobile. Si le back
-  ajoute `phone` et `contact_mail` à la ligne de liste, supprimer `useMemberContact`, `getMember` et lire les
-  champs sur `MemberListItem`.
+  couvre toute la ligne. La route `/members/:id` ouvre la fiche membre (voir « Fiche membre »).
+- **Téléphone et Email** : `MemberListItemResource` renvoie `phone` (null sans fiche saisie) et `contact_mail`
+  (toujours l'email du compte), au format de la fiche (KAN-33 côté back). Le tableau web les lit sur la ligne,
+  sans requête en plus ; les téléphones s'affichent au format international, un numéro par ligne (`formatPhone`), « - » sans numéro. Le front dépend de ce champ : un back sans
+  KAN-33 laisserait la colonne Email vide.
 - Autour de 1024 px, cinq colonnes ne tiennent pas à côté de la barre latérale : le tableau défile dans sa
   carte (Téléphone et Email ne se coupent jamais). Dès environ 1280 px, tout tient.
 - Le contenu des écrans connectés (`AppLayout`) occupe toute la largeur à droite de la barre latérale,
   plafonnée à 1536 px (`lg:max-w-384`) pour ne pas s'étirer sur les très grands écrans.
+
+## Fiche membre
+
+Routes `/members/:id` (`paths.member`, `MemberDetailPage`) et `/members/:id/edit` (`paths.memberEdit`,
+`MemberEditPage`), sous `RequireRole` (`admin`, `secretaire`). Maquettes `01-Lot1-Recensement/{mobile,web}`.
+
+- **Une seule arborescence, deux mises en page** : `MemberDetail` rend les deux maquettes avec les classes `lg:`
+  (pas de `useMediaQuery`). `MemberDetailHeader` contient deux `<header>` : mobile (flèche, « Fiche membre »,
+  « Modifier », `lg:hidden`) et web (« Membres », nom en titre, bouton « Modifier », `hidden lg:block`). Le
+  nom complet n'est donc le `h1` qu'une fois à l'écran : celui du web, ou celui sous l'avatar en mobile.
+  L'en-tête mobile garde `pr-12` : `ThemeToggle` est en `absolute top-3 right-3` sous `lg` et recouvrirait
+  « Modifier ».
+- **Chargement** : `MemberLoader` (`id`, enfant en fonction) gère le chargement, la 404 (`isNotFoundError`,
+  `MemberNotFound`) et les autres erreurs (alerte et « Réessayer »). Les deux pages passent `key={memberId}`
+  pour repartir d'un état propre quand l'identifiant change. Un identifiant illisible (`parseMemberId` :
+  entier positif, rien d'autre) affiche `MemberNotFound` sans appel au back.
+- **Cache** : la fiche (`memberKeys.detail(id)`) et la liste sont sous `memberKeys.all` : une mutation les
+  recharge donc toutes les deux (la liste est à jour au retour). Les deux mutations
+  (`useValidateMember`, `useUpdateMember`) sont en `networkMode: 'always'` et renvoient la Promise
+  d'invalidation de leur `onSuccess` : le bouton reste en chargement jusqu'au rechargement de la fiche.
+  `useUpdateMember` invalide aussi `authKeys.me()` (un admin peut modifier sa propre fiche, la carte de la
+  barre latérale lit `me`).
+- **Validation d'un compte** : `PendingValidationBanner` (si `status === 'pending'`), `POST
+  /api/members/{id}/validate`. La réponse est une `UserResource` **sans `profile` ni prénoms** : on invalide
+  `memberKeys.all` au lieu de `setQueryData`, sinon la fiche perdrait ses coordonnées. Bouton « Valider »
+  sous `lg`, « Valider le compte » dès `lg` (un seul bouton, `aria-label` fixe).
+- **Changement de voix** (`ChangeVoiceDialog`, lien « Changer ») : feuille en bas sur mobile, fenêtre centrée
+  dès `md` (`SheetDialogContent`). `PUT /api/members/{id}` est **complet** (voir « Modifier la fiche ») : la
+  feuille renvoie toute la fiche du membre avec le nouveau groupe (`getVoiceChangeInput` de `record.ts`, qui
+  rejoue le schéma du formulaire sur les valeurs de la fiche). Le lien n'apparaît donc que si
+  `canChangeVoice(member)` : fiche complète, sinon le back répondrait 422 et « Modifier » demande les champs
+  manquants. Changer de groupe n'envoie **pas** la voix précise (`voice`, ex. « A2 ») : sans `voice`, le back la
+  garde tant que le groupe ne change pas, et il refuse une voix qui n'appartient pas au groupe. Même groupe :
+  la feuille se ferme sans requête.
+- **Modifier la fiche** (`MemberProfileForm`, maquettes `01-Lot1-Recensement/{mobile,web}/11-Modification-fiche-membre`) :
+  `PUT /api/members/{id}` est **complet** (`UpdateMemberProfileRequest`) : toute la fiche est envoyée à chaque
+  enregistrement et un champ facultatif envoyé à `null` est effacé. Six cartes (`member-record-sections.tsx` :
+  Identité, Coordonnées, Chorale, Paroisse et sacrements, Mariage, Contact en cas d'urgence), sur deux colonnes
+  dès `lg` (Identité, Coordonnées et Chorale à gauche, le reste à droite), empilées dans l'ordre de la maquette
+  en dessous. Les champs obligatoires portent l'astérisque rouge, les facultatifs « (facultatif) » (`FieldLabel`).
+  L'en-tête est dans le `<form>` (`MemberEditHeader` : « Annuler », titre, « Enregistrer » sous `lg` ; dès `lg`,
+  fil avec le nom du membre, « Annuler » et « Enregistrer les modifications ») et porte **les seuls boutons** :
+  pas de rangée de boutons en bas du formulaire. L'alerte d'erreur serveur est donc posée sous l'en-tête.
+  Les barres sont **collées en haut** (`sticky top-0 z-20`, fond opaque, comme un en-tête figé de tableur) pour que
+  « Enregistrer » reste atteignable sur toute la longueur. Un `sticky` est borné par son parent : les barres sont
+  des enfants directs du `<form>` (le fil web est donc hors de la barre, avec `-mb-5` pour annuler le `gap-5`) et
+  débordent du `px-4 py-6` (mobile) ou du `px-12` (web) de `AppLayout` par des marges négatives. `src/index.css`
+  pose `scroll-padding-top: 6rem` sur `html` : le champ focalisé (premier champ en erreur après « Enregistrer »)
+  se cale sous la barre au lieu de passer dessous.
+- **Modifier la fiche, données** : `schemas.ts` (`memberRecordSchema`) a la forme du corps du PUT (blocs
+  `baptism`, `first_communion`, `confirmation`, `marriage` et `emergency_contact` imbriqués), pour que
+  `applyServerErrors` pose les erreurs 422 à clés pointées (`baptism.date`) sous le bon champ. `record.ts` porte
+  les valeurs de départ (`getMemberRecordDefaults`) et le corps du PUT (`toUpdateMemberInput`). Les **dates**
+  restent du texte : le back lit `jj/mm/aaaa`, `mm/aaaa`, `aaaa` ou « Septembre 2019 », refuse le futur et exige
+  un jour complet pour la naissance ; le front ne contrôle que la présence, l'erreur 422 s'affiche sous le champ.
+  **Cliquer le champ de date** (`DateField` de `components/common/`, branché par `RecordDateField` de
+  `member-record-sections.tsx`) ouvre `DatePickerDialog` (feuille en bas sur mobile, fenêtre centrée dès
+  `md`) ; Entrée, Espace et la flèche du bas aussi (Entrée n'envoie donc pas le formulaire depuis ce champ).
+  Le champ est en **lecture seule** (`readOnly`, `aria-haspopup="dialog"`, icône calendrier décorative) : on ne
+  tape plus la date, le sélecteur écrit le champ. Le sélecteur a une **précision** à choisir : Année (liste des
+  années), Mois (mois et année) ou Jour
+  (calendrier du mois, lundi en premier, flèches de mois), et remplit le champ en `aaaa`, `mm/aaaa` ou
+  `jj/mm/aaaa`. Un sélecteur natif `type="date"` n'a pas été retenu : il oblige à choisir un jour, alors que le
+  back accepte `mm/aaaa` et `aaaa` (toutes les dates sauf la naissance). La naissance (`allowPartial={false}`)
+  n'a pas de choix de précision : jour obligatoire. Bornes 1900 à aujourd'hui comme le back (jours, mois et
+  années à venir désactivés). Le sélecteur s'ouvre sur la saisie du champ quand elle se lit (`parseDateInput` de
+  `lib/dates.ts` : `12/03/1998`, `05/1998`, `2008`, « Septembre 2019 », « 15 août 2012 »). Une date **facultative** déjà saisie se vide depuis le sélecteur
+  (bouton « Effacer la date », `onClear`) : le champ étant en lecture seule, c'est le seul moyen de la retirer.
+  Pas de bibliothèque de calendrier ni de composant shadcn `calendar` : aucune dépendance ajoutée (listes
+  déroulantes natives, `dark:scheme-dark` pour le thème sombre). Radix ne rend le focus qu'à un `DialogTrigger` :
+  `DateField` passe `onCloseFocus` pour le rendre au champ.
+  À l'ouverture, les dates de l'API (`1998-03-12`, `1998-05`, `2008`) sont converties en saisie
+  (`toDisplayDate`). Un champ facultatif vide part en `null`. La clé `voice` n'est **jamais** envoyée. Le
+  matricule est facultatif (le back l'accepte vide : « à laisser vide si vous résidez à l'étranger »), malgré
+  l'astérisque de la maquette. Le contact d'urgence se choisit en pastilles (`ChoiceChips`, au moins un lien) :
+  Parents, Famille, Tuteur/Tutrice, Ami(e) proche, plus les liens déjà dans la fiche (`getRelationshipOptions`).
+  **Pas rendus** : l'email (lecture seule, celui du compte, le back ne l'accepte pas) et la photo (le back renvoie
+  `picture_url` mais n'a pas de route de dépôt).
+- **Téléphone** : tous les numéros passent par `lib/phone.ts` (bibliothèque `libphonenumber-js`, entrée
+  `libphonenumber-js/min`) et sont envoyés **en E.164** (`+261341234567`), avec Madagascar par défaut
+  (`DEFAULT_PHONE_COUNTRY`). `PhoneField` (`components/common/`) saisit **un** numéro : un sélecteur de pays (drapeau
+  et indicatif, « 🇲🇬 +261 ») et le numéro national. La liste de pays est la liste native de l'appareil (tous les
+  pays, avec Madagascar, France, La Réunion, Maurice et Comores en tête). Le drapeau est un **emoji** (`getFlag` :
+  deux indicateurs régionaux Unicode, aucune dépendance) ; Windows n'a pas de police de drapeaux et affiche à la
+  place les deux lettres du pays (« MG »). Un numéro international saisi ou collé (`+33 6 12 34 56 78`) change le
+  pays tout seul ; le numéro national se met en forme à la sortie du champ. Le pays et le texte sont lus **une
+  seule fois** à l'ouverture (état local) : la valeur ne change ensuite que par le champ.
+- **Plusieurs numéros** : `PhoneListField` (`components/common/`) : une ligne par numéro (un `PhoneField` chacune),
+  « Ajouter un numéro » et un bouton pour retirer une ligne dès qu'il y en a plusieurs. Il sert au **numéro du
+  membre** (`phone` : carte Coordonnées du formulaire de la fiche et `ProfileForm` de `auth`) et au **contact
+  d'urgence** (`emergency_contact.phone`, « Numéro(s) de téléphone à contacter »). La valeur du formulaire est la
+  chaîne des numéros E.164 jointe par « / » (`+261341910929 / +33612345678`, `joinPhones`, lignes vides ignorées).
+  Les limites suivent les colonnes du back, séparateurs compris : **30 caractères** pour `phone`
+  (`user_profiles.phone`, `varchar(30)` : deux numéros malgaches, pas trois, donc `maxCount={2}`) et **50** pour le
+  contact d'urgence (trois). `lib/phone-schema.ts` (`phonesSchema`) porte la règle des schémas Zod de `members` et
+  `auth` : au moins un numéro, chacun valide pour son pays (`arePhonesValid`, « Numéro de téléphone invalide »),
+  longueur maximale (« Trop de numéros »). Pour accepter trois numéros dans `phone`, il faut une migration et la
+  règle `max` côté back, puis `PROFILE_PHONES_MAX_LENGTH` et `maxCount` côté front.
+- **Anciens numéros et affichage** : les numéros déjà enregistrés (« 034 12 345 67 », « 0345621358 », plusieurs
+  séparés par « / », « ; » ou une virgule) sont relus en E.164 à l'ouverture des formulaires (`splitPhones`,
+  Madagascar par défaut) ; un numéro illisible reste tel quel, à corriger. L'affichage passe par `formatPhone` et
+  `formatPhones` (« +261 34 12 345 67 ») : un numéro par ligne dans le tableau de la liste et dans le contact
+  d'urgence de la fiche, une ligne par numéro dans Contacts, une seule ligne (séparée par
+  « / ») dans la carte récapitulative de `auth`.
+- **Back et téléphone** : le front envoie toujours de l'E.164. Sur sa branche actuelle, le back garde `phone` (30
+  caractères) et le numéro du contact d'urgence (50) comme textes libres, sans validation ; une règle E.164
+  (`E164PhonesRule`, numéros joints par « / ») a existé dans une version de travail du back : le front est
+  compatible avec les deux. Dépendance ajoutée : `libphonenumber-js` (reconstruire le conteneur de dev, voir
+  « Docker »).
+- **`VoicePicker`** est dans `components/common/` (il servait à `auth`, il sert maintenant à `members`).
+  Prop `layout` : `form` (grille de la fiche de recensement) ou `sheet` (une colonne avec pastille radio sous
+  `md`, grille 2 x 2 dès `md`, légende en `sr-only`). Prop `compact` : toujours 2 colonnes en `form`, pour la
+  carte Chorale du formulaire en deux colonnes (quatre tuiles y débordent).
+- **Contacts** : téléphone = `profile.phone`, email = `profile.contact_mail` ou, à défaut, l'email du compte.
+  Un membre peut avoir plusieurs numéros (`splitPhones`) : une ligne « Téléphone 1 », « Téléphone 2 ». Une valeur
+  absente s'affiche « - ».
+  **Copie au clic, aucun lien `tel:` ni `mailto:`** : le clic ne doit jamais ouvrir l'appli de messagerie ni celle
+  d'appel (Zoom, par exemple) ; ne pas réintroduire de lien. Cliquer (ou toucher) le téléphone ou l'email copie la
+  valeur dans le presse-papiers et ouvre une notification (« Numéro copié », « Adresse email copiée »). Le numéro
+  copié est l'E.164 sans espaces, l'email tel quel. Dans `ContactRow` (prop `copy`), la valeur est un vrai
+  `<button>` (nom accessible « Copier le numéro +261 34 12 345 67 », « Copier l'adresse {email} ») dont la zone
+  couvre toute la ligne (`after:absolute after:inset-0`, ligne `relative`, comme le lien du tableau de la liste) ;
+  l'icône du contact (`Phone`, `Mail`, pastille de 44 px, `aria-hidden`, prop `icon`) reste à droite, décorative :
+  ce n'est pas un lien, un clic dessus copie aussi. Anneau de focus à l'intérieur de la ligne. L'adresse et le pseudo ne se copient pas (ni icône ni bouton).
+  `lib/clipboard.ts` (`copyText`) utilise `navigator.clipboard` et, à défaut (page servie en
+  http hors localhost, ancien navigateur), un repli par sélection (`execCommand('copy')`) ; si tout échoue, une
+  notification d'erreur s'affiche.
+- **Fiche en lecture seule** : `MemberDetail` affiche les mêmes six cartes que le formulaire, dans le même
+  ordre et sur deux colonnes dès `lg` (`DetailsCard`, `DetailRows` et `DetailRow` de `member-detail-row.tsx` ;
+  `member-record-details.tsx` pour Chorale, Paroisse et sacrements, Mariage et Contact en cas d'urgence).
+  Identité (avec la naissance) et Contacts (avec l'adresse et le pseudo) gardent leurs fichiers. Écart avec le
+  formulaire : la voix et son lien « Changer » restent dans Identité (ticket KAN-60), pas dans Chorale. Une
+  valeur absente s'affiche « - » ; les retours à la ligne de l'adresse et des noms de contacts sont conservés ;
+  les dates s'affichent comme dans le formulaire (`toDisplayDate`).
+- **Vérifié contre le vrai back** (base de dev, compte admin, membre 28) à 390 px et 1440 px, en clair et en
+  sombre : lecture de la fiche complète, formulaire pré-rempli, validation côté client (aucune requête), 422
+  réel à clés pointées (`birth_date`, `baptism.date`) sous les bons champs, corps du PUT (sans `voice`, `null`
+  pour les champs facultatifs vides). **Non vérifié** : un enregistrement réussi (200), le changement de voix et
+  l'affichage de valeurs réelles, car les 27 membres de la base de dev ont une fiche incomplète (seuls nom,
+  prénom, voix, téléphone et email sont remplis) : « Changer » y est masqué pour tous, et un enregistrement
+  écrirait dans cette base.
 
 ## Export de la liste des membres
 
@@ -562,7 +711,8 @@ npm run lint     # ESLint
   qui déclenche `react-refresh/only-export-components`. Un `eslint-disable-next-line` est posé sur l'export
   et `eslint.config.js` reste intact (le hook `config-protection` interdit de l'assouplir). Si la CLI shadcn
   réécrit `button.tsx`, remettre ce commentaire.
-- **Taille du bundle** : un seul chunk d'environ 560 kB (175 kB gzip). Découper par route (`lazy`) quand les
+- **Taille du bundle** : un seul chunk d'environ 560 kB (175 kB gzip) avant `libphonenumber-js/min`, qui y ajoute environ 170 kB
+  (33 kB gzip, mesuré isolément). Découper par route (`lazy`) quand les
   écrans des lots suivants arriveront.
 
 ---
@@ -587,4 +737,5 @@ npm run lint     # ESLint
    - [x] KAN-61 : export PDF / CSV (feuille « Exporter la liste », voir « Export de la liste des membres »)
    - [x] Liste : tableau (web, 5 colonnes de la maquette) et lignes (mobile), recherche, filtre de voix,
      pagination (voir « Liste des membres »)
-   - [ ] Fiche membre
+   - [x] KAN-60 : fiche membre (identité, contacts, validation d'un compte en attente, changement de voix,
+     modification de la fiche ; voir « Fiche membre »)
