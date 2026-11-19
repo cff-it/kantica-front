@@ -16,6 +16,8 @@ export const paths = {
   membersImport: '/members/import',
   membersImportReview: '/members/import/review',
   membersImportReport: '/members/import/:id',
+  // Ajout d'un membre : le segment fixe `new` l'emporte sur `:id` de `member`.
+  memberNew: '/members/new',
   member: '/members/:id',
   memberEdit: '/members/:id/edit',
   profile: '/profile',

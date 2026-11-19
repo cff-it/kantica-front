@@ -81,6 +81,15 @@ export type UpdateMemberVariables = {
   input: UpdateMemberInput;
 };
 
+// Corps de POST /members (CreateMemberRequest) : la même fiche complète que le
+// PUT, plus l'email du compte. L'email est l'identifiant de connexion : il se
+// saisit ici, une seule fois, et ne change plus ensuite. Le mot de passe, le
+// statut et les rôles ne se choisissent pas : le back génère le mot de passe,
+// crée le compte actif (rôle membre) et envoie l'invitation par mail.
+export type CreateMemberInput = UpdateMemberInput & {
+  mail: string;
+};
+
 // Formats proposés par l'écran d'export. Le back accepte aussi `xlsx`, absent
 // des maquettes.
 export type ExportFormat = 'pdf' | 'csv';

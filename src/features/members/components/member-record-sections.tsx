@@ -13,8 +13,9 @@ import { MemberFormSection } from './member-form-section';
 
 // Cartes du formulaire « Modifier la fiche » (maquette
 // 11-Modification-fiche-membre), dans l'ordre de la maquette mobile. Sur web,
-// `MemberProfileForm` les range en deux colonnes. Chaque carte lit et écrit
-// le formulaire reçu : les noms de champs suivent le corps du PUT.
+// `MemberRecordFields` les range en deux colonnes. Chaque carte lit et écrit
+// le formulaire reçu : les noms de champs suivent le corps du PUT. Elles
+// servent aussi à « Ajouter un membre ».
 
 type SectionProps = {
   form: UseFormReturn<MemberRecordInput>;
@@ -115,24 +116,18 @@ export function IdentitySection({ form }: SectionProps) {
 }
 
 type ContactSectionProps = SectionProps & {
-  // Email du compte : lecture seule, le back ne l'accepte pas.
-  email: string;
+  // Champ de l'email du compte, posé en tête de la carte : en lecture seule à
+  // la modification (le back ne l'accepte pas), saisi à l'ajout d'un membre.
+  emailField: ReactNode;
 };
 
-export function ContactSection({ form, email }: ContactSectionProps) {
+export function ContactSection({ form, emailField }: ContactSectionProps) {
   const { register } = form;
   const { errors } = form.formState;
 
   return (
     <MemberFormSection title="Coordonnées">
-      <FormField
-        label="Adresse e-mail"
-        type="email"
-        required
-        value={email}
-        readOnly
-        className="bg-muted text-muted-foreground"
-      />
+      {emailField}
       <Controller
         control={form.control}
         name="phone"
