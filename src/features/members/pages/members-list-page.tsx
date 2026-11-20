@@ -1,5 +1,6 @@
 import { PageHeader } from '@/components/common/page-header';
 
+import { AddMemberLink } from '../components/add-member-link';
 import { ExportMembersDialog } from '../components/export-members-dialog';
 import { ImportMembersLink } from '../components/import-members-link';
 import { MembersResults } from '../components/members-results';
@@ -24,6 +25,7 @@ export function MembersListPage() {
         description={meta ? getRegisteredLabel(meta.registered_count) : undefined}
         actions={
           <div className="grid w-full grid-cols-2 gap-3 sm:flex sm:w-auto">
+            <AddMemberLink className="col-span-2 sm:col-span-1" />
             <ImportMembersLink />
             <ExportMembersDialog
               count={getExportCount(meta, filters.voice)}
