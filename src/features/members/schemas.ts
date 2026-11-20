@@ -76,6 +76,21 @@ export const memberRecordSchema = z.object({
 
 export type MemberRecordInput = z.infer<typeof memberRecordSchema>;
 
+// CreateMemberRequest : la fiche complète et l'email du compte. L'email est
+// nettoyé avant validation (les claviers mobiles ajoutent souvent une espace
+// finale) ; le back l'écrit en minuscules et refuse une adresse déjà utilisée
+// (422 sur `mail`, affiché sous le champ).
+export const createMemberSchema = memberRecordSchema.extend({
+  mail: z
+    .string()
+    .trim()
+    .min(1, 'Adresse email requise')
+    .pipe(z.email('Adresse email invalide'))
+    .pipe(z.string().max(255, 'Adresse email trop longue')),
+});
+
+export type CreateMemberFormInput = z.infer<typeof createMemberSchema>;
+
 // Fichier d'import (ImportUsersRequest du back : .xlsx, 5 Mo). Ces deux règles
 // sont contrôlées avant l'envoi, pour ne pas téléverser un fichier refusé
 // d'avance ; les autres refus (illisible, colonnes manquantes, plus de 500

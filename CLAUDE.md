@@ -527,11 +527,12 @@ Routes `/members/:id` (`paths.member`, `MemberDetailPage`) et `/members/:id/edit
   la feuille se ferme sans requête.
 - **Modifier la fiche** (`MemberProfileForm`, maquettes `01-Lot1-Recensement/{mobile,web}/11-Modification-fiche-membre`) :
   `PUT /api/members/{id}` est **complet** (`UpdateMemberProfileRequest`) : toute la fiche est envoyée à chaque
-  enregistrement et un champ facultatif envoyé à `null` est effacé. Six cartes (`member-record-sections.tsx` :
-  Identité, Coordonnées, Chorale, Paroisse et sacrements, Mariage, Contact en cas d'urgence), sur deux colonnes
+  enregistrement et un champ facultatif envoyé à `null` est effacé. Six cartes (`member-record-sections.tsx`,
+  rangées par `MemberRecordFields`, partagé avec « Ajouter un membre » : Identité, Coordonnées, Chorale,
+  Paroisse et sacrements, Mariage, Contact en cas d'urgence), sur deux colonnes
   dès `lg` (Identité, Coordonnées et Chorale à gauche, le reste à droite), empilées dans l'ordre de la maquette
   en dessous. Les champs obligatoires portent l'astérisque rouge, les facultatifs « (facultatif) » (`FieldLabel`).
-  L'en-tête est dans le `<form>` (`MemberEditHeader` : « Annuler », titre, « Enregistrer » sous `lg` ; dès `lg`,
+  L'en-tête est dans le `<form>` (`MemberFormHeader` : « Annuler », titre, « Enregistrer » sous `lg` ; dès `lg`,
   fil avec le nom du membre, « Annuler » et « Enregistrer les modifications ») et porte **les seuls boutons** :
   pas de rangée de boutons en bas du formulaire. L'alerte d'erreur serveur est donc posée sous l'en-tête.
   Les barres sont **collées en haut** (`sticky top-0 z-20`, fond opaque, comme un en-tête figé de tableur) pour que
@@ -632,6 +633,59 @@ Routes `/members/:id` (`paths.member`, `MemberDetailPage`) et `/members/:id/edit
   l'affichage de valeurs réelles, car les 27 membres de la base de dev ont une fiche incomplète (seuls nom,
   prénom, voix, téléphone et email sont remplis) : « Changer » y est masqué pour tous, et un enregistrement
   écrirait dans cette base.
+
+## Ajout d'un membre
+
+Route `/members/new` (`paths.memberNew`, `MemberCreatePage`), sous `RequireRole` (`admin`, `secretaire`) ; le
+segment statique `new` passe avant `/members/:id`. Pas de maquette dédiée : c'est l'écran « Modifier la fiche »
+(maquette 11) en mode création, champs vides. Entrée : bouton « Ajouter un membre » (`AddMemberLink`), seule
+action pleine de l'en-tête de la liste : pleine largeur au-dessus d'« Importer » et « Exporter » sous `lg`, à
+gauche des deux autres dès `lg` (emplacement non maquetté, choisi par défaut).
+
+- **Back** : `POST /api/members` (`CreateMemberRequest`, 201, réponse au format de `GET /members/{id}`). Corps :
+  `mail` et la fiche du PUT (mêmes champs, mêmes validations). Le compte est créé **actif et vérifié** (rôle
+  membre) ; le mot de passe est généré (ni saisi ni renvoyé) et part dans un mail d'invitation (adresse et mot de
+  passe, sans lien : la réinitialisation n'existe pas). `mail` est écrit en minuscules, unique sans tenir compte
+  de la casse (422 sur `mail`) et ne change plus ensuite. 403 pour un autre rôle.
+- **Composants partagés avec la modification** : `MemberRecordFields` (rappel « Champ obligatoire », alerte du
+  serveur, six cartes) et `MemberFormHeader` (titre, fil de retour et libellés des boutons en props).
+  `ContactSection` reçoit le champ email en `emailField` : lecture seule à la modification, saisi à l'ajout (avec
+  l'indice « Le mot de passe de connexion est envoyé à cette adresse. Elle ne pourra plus être modifiée. »).
+  `createMemberSchema` est `memberRecordSchema` plus `mail` (`trim`, email valide, 255 au plus) ;
+  `getNewMemberDefaults()` donne la fiche vide (voix à choisir) et `toCreateMemberInput()` le corps du POST
+  (sans `voice`).
+- **Typage** : les deux formulaires (`MemberCreateForm`, `MemberProfileForm`) s'enveloppent dans un `FormProvider`
+  et les cartes (`member-record-sections.tsx`, `MemberRecordFields`) lisent le formulaire par `useRecordForm()`
+  (`hooks/use-record-form.ts`, un `useFormContext<MemberRecordInput>()`) : plus de prop `form`, plus de cast. Un
+  `UseFormReturn` passé en prop est invariant (`watch`) et refuse un formulaire qui a un champ en plus, comme
+  `mail` à l'ajout. Le type des valeurs est posé une seule fois dans le hook : React Hook Form ne vérifie pas que
+  le provider le porte, c'est vrai parce que `createMemberSchema` étend `memberRecordSchema`. Les cartes ne
+  lisent que des champs de la fiche ; un champ de compte se lit dans le formulaire parent (comme `mail`).
+- **Après l'envoi** : toast « Membre ajouté. Une invitation va être envoyée à {mail}. » (le `mail` de la réponse,
+  donc nettoyé et en minuscules), puis fiche du nouveau membre. Le message ne dit pas « envoyée » : le back met
+  `MemberInvitationMail` en file d'attente (`ShouldQueue`), le 201 arrive avant l'envoi et le front ne sait pas
+  si le mail est parti. `useCreateMember` (`networkMode: 'always'`) invalide `memberKeys.all` :
+  la liste et ses effectifs sont rechargés à son retour. Le membre est actif : pas de badge « En attente ».
+- **Erreurs** : une 422 est posée sous les champs par `applyServerErrors`, qui donne le **focus au premier champ**
+  de la réponse (`shouldFocus` sur le premier `setError` seulement ; la page se cale sous la barre collée grâce à
+  `scroll-padding-top`). Sur un long formulaire, une erreur hors de l'écran laisserait croire que le bouton ne fait
+  rien : le plus probable est l'email déjà utilisé (« Cette adresse email est déjà utilisée. »), en haut du
+  formulaire, mais une date ou un téléphone refusés par le back sont dans le même cas. Cela vaut pour tous les
+  formulaires qui passent par `applyServerErrors` (un champ sans référence focalisable, comme les pastilles, ne
+  bouge pas). Un 403 ouvre le toast « Vous n'avez pas le droit d'ajouter un membre. » (`isForbiddenError`), toute
+  autre erreur le toast « Impossible d'ajouter le membre. Réessayez. ».
+- **Vérifié contre le vrai back** (branche `feature/kan-89-add-member`, base de dev, compte secrétaire) à 390 px
+  et 1440 px : création réussie (201, compte actif, fiche complète, dates partielles, téléphones E.164, mail
+  d'invitation journalisé, aucun job en échec), validation client (18 messages, aucune requête), email en
+  doublon avec une autre casse (422 sous le champ, focus), modification du membre créé (PUT sans `mail`), liste
+  (effectif et voix à jour, pas de badge), compte `membre` refusé (403 du back, redirection du front). Le membre
+  de test `kan90.test@scenarios.kantica.test` est resté dans la base de dev (le seeder
+  `MemberReferenceSeeder` purge ce domaine).
+- **Revérifié après la revue de la PR** (`FormProvider`, focus du premier champ en erreur, toast 403) à 390 px :
+  email en doublon et 422 sur la date de naissance (focus et message visibles sous la barre collée, formulaire
+  conservé), 403 d'un compte `membre` (toast dédié, aucune alerte de champ), modification d'une fiche (pré-remplie,
+  422 simulée avec le même focus, PUT 200 réussi). Le membre de test `kan90.nonmail@scenarios.kantica.test` est
+  resté dans la base de dev (domaine purgé par le seeder).
 
 ## Export de la liste des membres
 
@@ -797,3 +851,5 @@ npm run lint     # ESLint
      modification de la fiche ; voir « Fiche membre »)
    - [x] KAN-62 : import Excel (modèle, envoi, vérification, rapport, historique ; voir « Import de membres
      (Excel) »)
+   - [x] KAN-90 : ajout d'un membre (formulaire de la fiche en mode création, invitation par mail ; voir
+     « Ajout d'un membre »)

@@ -4,8 +4,16 @@ import { joinPhones, splitPhones } from '@/lib/phone';
 import { toVoice } from '@/lib/voices';
 import type { MemberSacrament, User, Voice } from '@/types';
 
-import { memberRecordSchema, type MemberRecordInput } from './schemas';
-import type { UpdateMemberInput, UpdateMemberSacrament } from './types';
+import {
+  memberRecordSchema,
+  type CreateMemberFormInput,
+  type MemberRecordInput,
+} from './schemas';
+import type {
+  CreateMemberInput,
+  UpdateMemberInput,
+  UpdateMemberSacrament,
+} from './types';
 
 // Liens proposés pour le contact en cas d'urgence (maquette 11). Le back les
 // stocke tels quels (texte, joints par une virgule) : ces libellés sont les
@@ -42,16 +50,17 @@ function sacramentDefaults(sacrament: MemberSacrament | undefined) {
 }
 
 // Valeurs de départ du formulaire « Modifier la fiche » : la fiche du membre,
-// avec une chaîne vide pour tout champ non renseigné.
+// avec une chaîne vide pour tout champ non renseigné. Sans membre (ajout d'un
+// membre), tous les champs sont vides et la voix reste à choisir.
 export function getMemberRecordDefaults(
-  member: User,
+  member?: User,
 ): DefaultValues<MemberRecordInput> {
-  const profile = member.profile;
+  const profile = member?.profile;
   const marriage = profile?.marriage;
   const contact = profile?.emergency_contact;
 
   return {
-    last_name: profile?.last_name ?? member.last_name,
+    last_name: profile?.last_name ?? member?.last_name ?? '',
     first_name: profile?.first_name ?? '',
     birth_date: toDisplayDate(profile?.birth_date),
     birth_place: profile?.birth_place ?? '',
@@ -120,6 +129,21 @@ export function toUpdateMemberInput(
     },
     emergency_contact: values.emergency_contact,
   };
+}
+
+// Valeurs de départ de « Ajouter un membre » : une fiche vide et l'email à
+// saisir.
+export function getNewMemberDefaults(): DefaultValues<CreateMemberFormInput> {
+  return { ...getMemberRecordDefaults(), mail: '' };
+}
+
+// Corps du POST d'après le formulaire d'ajout : l'email du compte et la fiche,
+// écrite comme celle du PUT (la voix précise n'est pas envoyée non plus : le
+// back choisit la voix du groupe).
+export function toCreateMemberInput(
+  values: CreateMemberFormInput,
+): CreateMemberInput {
+  return { mail: values.mail, ...toUpdateMemberInput(values) };
 }
 
 // Le PUT est complet : changer la voix renvoie toute la fiche avec le nouveau

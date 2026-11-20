@@ -15,6 +15,7 @@ import {
   ImportMembersPage,
   ImportReportPage,
   ImportReviewPage,
+  MemberCreatePage,
   MemberDetailPage,
   MemberEditPage,
   MembersListPage,
@@ -142,6 +143,11 @@ export const router = createBrowserRouter([
                 path: paths.membersImportReport,
                 element: <ImportReportPage />,
                 handle: { title: "Rapport d'import" },
+              },
+              {
+                path: paths.memberNew,
+                element: <MemberCreatePage />,
+                handle: { title: 'Ajouter un membre' },
               },
               {
                 path: paths.member,

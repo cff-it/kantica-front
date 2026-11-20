@@ -1,5 +1,5 @@
 import { useId, type ComponentProps, type ReactNode } from 'react';
-import { Controller, type UseFormReturn } from 'react-hook-form';
+import { Controller } from 'react-hook-form';
 
 import { ChoiceChips } from '@/components/common/choice-chips';
 import { DateField } from '@/components/common/date-field';
@@ -8,17 +8,15 @@ import { FormTextarea } from '@/components/common/form-textarea';
 import { PhoneListField } from '@/components/common/phone-list-field';
 import { VoicePicker } from '@/components/common/voice-picker';
 
-import type { MemberRecordInput } from '../schemas';
+import { useRecordForm } from '../hooks/use-record-form';
 import { MemberFormSection } from './member-form-section';
 
 // Cartes du formulaire « Modifier la fiche » (maquette
 // 11-Modification-fiche-membre), dans l'ordre de la maquette mobile. Sur web,
-// `MemberProfileForm` les range en deux colonnes. Chaque carte lit et écrit
-// le formulaire reçu : les noms de champs suivent le corps du PUT.
-
-type SectionProps = {
-  form: UseFormReturn<MemberRecordInput>;
-};
+// `MemberRecordFields` les range en deux colonnes. Chaque carte lit et écrit
+// le formulaire du `FormProvider` le plus proche (`useRecordForm`) : les noms
+// de champs suivent le corps du PUT. Elles servent aussi à « Ajouter un
+// membre ».
 
 const DATE_PLACEHOLDER = 'jj/mm/aaaa';
 
@@ -39,21 +37,22 @@ type RecordDateName =
   | 'confirmation.date'
   | 'marriage.date';
 
-type RecordDateFieldProps = SectionProps &
-  Omit<
-    ComponentProps<typeof DateField>,
-    'form' | 'name' | 'value' | 'onChange' | 'onBlur' | 'error'
-  > & {
-    name: RecordDateName;
-  };
+type RecordDateFieldProps = Omit<
+  ComponentProps<typeof DateField>,
+  'name' | 'value' | 'onChange' | 'onBlur' | 'error'
+> & {
+  name: RecordDateName;
+};
 
 // Champ de date de la fiche : saisie libre et sélecteur de date (`DateField`),
 // relié au formulaire par un `Controller` pour que le choix du sélecteur mette
 // à jour la valeur.
-function RecordDateField({ form, name, ...props }: RecordDateFieldProps) {
+function RecordDateField({ name, ...props }: RecordDateFieldProps) {
+  const { control } = useRecordForm();
+
   return (
     <Controller
-      control={form.control}
+      control={control}
       name={name}
       render={({ field, fieldState }) => (
         <DateField
@@ -70,9 +69,11 @@ function RecordDateField({ form, name, ...props }: RecordDateFieldProps) {
   );
 }
 
-export function IdentitySection({ form }: SectionProps) {
-  const { register } = form;
-  const { errors } = form.formState;
+export function IdentitySection() {
+  const {
+    register,
+    formState: { errors },
+  } = useRecordForm();
 
   return (
     <MemberFormSection title="Identité">
@@ -94,7 +95,6 @@ export function IdentitySection({ form }: SectionProps) {
       </div>
       <div className="grid grid-cols-2 gap-4">
         <RecordDateField
-          form={form}
           name="birth_date"
           label="Date de naissance"
           allowPartial={false}
@@ -114,27 +114,24 @@ export function IdentitySection({ form }: SectionProps) {
   );
 }
 
-type ContactSectionProps = SectionProps & {
-  // Email du compte : lecture seule, le back ne l'accepte pas.
-  email: string;
+type ContactSectionProps = {
+  // Champ de l'email du compte, posé en tête de la carte : en lecture seule à
+  // la modification (le back ne l'accepte pas), saisi à l'ajout d'un membre.
+  emailField: ReactNode;
 };
 
-export function ContactSection({ form, email }: ContactSectionProps) {
-  const { register } = form;
-  const { errors } = form.formState;
+export function ContactSection({ emailField }: ContactSectionProps) {
+  const {
+    control,
+    register,
+    formState: { errors },
+  } = useRecordForm();
 
   return (
     <MemberFormSection title="Coordonnées">
-      <FormField
-        label="Adresse e-mail"
-        type="email"
-        required
-        value={email}
-        readOnly
-        className="bg-muted text-muted-foreground"
-      />
+      {emailField}
       <Controller
-        control={form.control}
+        control={control}
         name="phone"
         render={({ field, fieldState }) => (
           <PhoneListField
@@ -169,14 +166,17 @@ export function ContactSection({ form, email }: ContactSectionProps) {
   );
 }
 
-export function ChoirSection({ form }: SectionProps) {
-  const { register } = form;
-  const { errors } = form.formState;
+export function ChoirSection() {
+  const {
+    control,
+    register,
+    formState: { errors },
+  } = useRecordForm();
 
   return (
     <MemberFormSection title="Chorale">
       <Controller
-        control={form.control}
+        control={control}
         name="voice_group"
         render={({ field, fieldState }) => (
           <VoicePicker
@@ -191,7 +191,6 @@ export function ChoirSection({ form }: SectionProps) {
         )}
       />
       <RecordDateField
-        form={form}
         name="adhesion_date"
         label="Date d'adhésion à la chorale"
         required
@@ -200,7 +199,6 @@ export function ChoirSection({ form }: SectionProps) {
       />
       <div className="grid grid-cols-2 gap-4">
         <RecordDateField
-          form={form}
           name="engagement_date"
           label="Date d'engagement"
           optional
@@ -221,17 +219,20 @@ export function ChoirSection({ form }: SectionProps) {
 
 type SacramentName = 'baptism' | 'first_communion' | 'confirmation';
 
-type SacramentFieldsProps = SectionProps & {
+type SacramentFieldsProps = {
   name: SacramentName;
   title: string;
 };
 
 // Un sacrement : titre en police de titre, date et lieu obligatoires. Le groupe
 // est nommé par son titre, car les trois blocs ont les mêmes libellés.
-function SacramentFields({ form, name, title }: SacramentFieldsProps) {
+function SacramentFields({ name, title }: SacramentFieldsProps) {
   const titleId = useId();
-  const { register } = form;
-  const sacramentErrors = form.formState.errors[name];
+  const {
+    register,
+    formState: { errors },
+  } = useRecordForm();
+  const sacramentErrors = errors[name];
 
   return (
     <div
@@ -244,7 +245,6 @@ function SacramentFields({ form, name, title }: SacramentFieldsProps) {
       </h3>
       <div className="grid grid-cols-2 gap-4">
         <RecordDateField
-          form={form}
           name={`${name}.date`}
           label="Date"
           pickerLabel={title}
@@ -265,9 +265,11 @@ function SacramentFields({ form, name, title }: SacramentFieldsProps) {
   );
 }
 
-export function ParishSection({ form }: SectionProps) {
-  const { register } = form;
-  const { errors } = form.formState;
+export function ParishSection() {
+  const {
+    register,
+    formState: { errors },
+  } = useRecordForm();
 
   return (
     <MemberFormSection title="Paroisse et sacrements">
@@ -282,20 +284,19 @@ export function ParishSection({ form }: SectionProps) {
         error={errors.region_registration_number?.message}
         {...register('region_registration_number')}
       />
-      <SacramentFields form={form} name="baptism" title="Baptême" />
-      <SacramentFields
-        form={form}
-        name="first_communion"
-        title="Première Communion"
-      />
-      <SacramentFields form={form} name="confirmation" title="Confirmation" />
+      <SacramentFields name="baptism" title="Baptême" />
+      <SacramentFields name="first_communion" title="Première Communion" />
+      <SacramentFields name="confirmation" title="Confirmation" />
     </MemberFormSection>
   );
 }
 
-export function MarriageSection({ form }: SectionProps) {
-  const { register } = form;
-  const marriageErrors = form.formState.errors.marriage;
+export function MarriageSection() {
+  const {
+    register,
+    formState: { errors },
+  } = useRecordForm();
+  const marriageErrors = errors.marriage;
 
   return (
     <MemberFormSection title="Mariage" note="facultatif">
@@ -309,7 +310,6 @@ export function MarriageSection({ form }: SectionProps) {
       />
       <div className="grid grid-cols-2 gap-4">
         <RecordDateField
-          form={form}
           name="marriage.date"
           label="Date du mariage"
           optional
@@ -329,22 +329,25 @@ export function MarriageSection({ form }: SectionProps) {
   );
 }
 
-type EmergencySectionProps = SectionProps & {
+type EmergencySectionProps = {
   // Liens proposés : ceux de la maquette, plus ceux déjà dans la fiche.
   relationshipOptions: string[];
 };
 
 export function EmergencySection({
-  form,
   relationshipOptions,
 }: EmergencySectionProps) {
-  const { register } = form;
-  const contactErrors = form.formState.errors.emergency_contact;
+  const {
+    control,
+    register,
+    formState: { errors },
+  } = useRecordForm();
+  const contactErrors = errors.emergency_contact;
 
   return (
     <MemberFormSection title="Contact en cas d'urgence">
       <Controller
-        control={form.control}
+        control={control}
         name="emergency_contact.relationships"
         render={({ field, fieldState }) => (
           <ChoiceChips
@@ -368,7 +371,7 @@ export function EmergencySection({
         {...register('emergency_contact.name')}
       />
       <Controller
-        control={form.control}
+        control={control}
         name="emergency_contact.phone"
         render={({ field, fieldState }) => (
           <PhoneListField
