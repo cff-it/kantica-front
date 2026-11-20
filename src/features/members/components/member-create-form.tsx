@@ -31,7 +31,11 @@ export function MemberCreateForm() {
   const onSubmit = form.handleSubmit((values) => {
     createMember.mutate(toCreateMemberInput(values), {
       onSuccess: (member) => {
-        toast.success(`Invitation envoyée à ${member.mail}.`);
+        // Le back met le mail en file d'attente : le 201 ne dit pas qu'il est
+        // parti, le message ne promet donc pas une remise.
+        toast.success(
+          `Membre ajouté. Une invitation va être envoyée à ${member.mail}.`,
+        );
         void navigate(getMemberPath(member.id));
       },
       onError: (error) => {

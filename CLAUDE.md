@@ -661,8 +661,10 @@ gauche des deux autres dès `lg` (emplacement non maquetté, choisi par défaut)
   `mail` à l'ajout. Le type des valeurs est posé une seule fois dans le hook : React Hook Form ne vérifie pas que
   le provider le porte, c'est vrai parce que `createMemberSchema` étend `memberRecordSchema`. Les cartes ne
   lisent que des champs de la fiche ; un champ de compte se lit dans le formulaire parent (comme `mail`).
-- **Après l'envoi** : toast « Invitation envoyée à {mail} » (le `mail` de la réponse, donc nettoyé et en
-  minuscules), puis fiche du nouveau membre. `useCreateMember` (`networkMode: 'always'`) invalide `memberKeys.all` :
+- **Après l'envoi** : toast « Membre ajouté. Une invitation va être envoyée à {mail}. » (le `mail` de la réponse,
+  donc nettoyé et en minuscules), puis fiche du nouveau membre. Le message ne dit pas « envoyée » : le back met
+  `MemberInvitationMail` en file d'attente (`ShouldQueue`), le 201 arrive avant l'envoi et le front ne sait pas
+  si le mail est parti. `useCreateMember` (`networkMode: 'always'`) invalide `memberKeys.all` :
   la liste et ses effectifs sont rechargés à son retour. Le membre est actif : pas de badge « En attente ».
 - **Erreurs** : une 422 est posée sous les champs par `applyServerErrors`, qui donne le **focus au premier champ**
   de la réponse (`shouldFocus` sur le premier `setError` seulement ; la page se cale sous la barre collée grâce à
