@@ -1,8 +1,7 @@
 import type { ReactNode } from 'react';
-import type { UseFormReturn } from 'react-hook-form';
 
+import { useRecordForm } from '../hooks/use-record-form';
 import { getRelationshipOptions } from '../record';
-import type { MemberRecordInput } from '../schemas';
 import {
   ChoirSection,
   ContactSection,
@@ -13,7 +12,6 @@ import {
 } from './member-record-sections';
 
 type MemberRecordFieldsProps = {
-  form: UseFormReturn<MemberRecordInput>;
   // Champ de l'email du compte (voir `ContactSection`).
   emailField: ReactNode;
   // Liens déjà présents dans la fiche du contact d'urgence, en plus de ceux de
@@ -26,15 +24,16 @@ type MemberRecordFieldsProps = {
 // cartes (maquette 11-Modification-fiche-membre). Deux colonnes dès `lg`
 // (Identité, Coordonnées et Chorale à gauche ; Paroisse et sacrements, Mariage
 // et Contact en cas d'urgence à droite), empilées dans l'ordre de la maquette
-// en dessous. À poser dans le `<form>` (`flex flex-col gap-5`) : le fragment
-// laisse ses éléments enfants directs du formulaire, comme l'en-tête collé en
-// haut.
+// en dessous. Il lit le formulaire du `FormProvider` que chaque écran installe.
+// À poser dans le `<form>` (`flex flex-col gap-5`) : le fragment laisse ses
+// éléments enfants directs du formulaire, comme l'en-tête collé en haut.
 export function MemberRecordFields({
-  form,
   emailField,
   storedRelationships,
 }: MemberRecordFieldsProps) {
-  const { errors } = form.formState;
+  const {
+    formState: { errors },
+  } = useRecordForm();
 
   return (
     <>
@@ -51,15 +50,14 @@ export function MemberRecordFields({
       ) : null}
       <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
         <div className="flex flex-col gap-5">
-          <IdentitySection form={form} />
-          <ContactSection form={form} emailField={emailField} />
-          <ChoirSection form={form} />
+          <IdentitySection />
+          <ContactSection emailField={emailField} />
+          <ChoirSection />
         </div>
         <div className="flex flex-col gap-5">
-          <ParishSection form={form} />
-          <MarriageSection form={form} />
+          <ParishSection />
+          <MarriageSection />
           <EmergencySection
-            form={form}
             relationshipOptions={getRelationshipOptions(storedRelationships)}
           />
         </div>

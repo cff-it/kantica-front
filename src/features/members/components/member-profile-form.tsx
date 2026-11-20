@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
+import { FormProvider, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 
@@ -23,9 +23,9 @@ type MemberProfileFormProps = {
 // Formulaire « Modifier la fiche » d'un membre (maquette
 // 11-Modification-fiche-membre) : la fiche de recensement complète, pré-remplie,
 // enregistrée d'un bloc par `PUT /members/{id}`. Les six cartes sont celles de
-// `MemberRecordFields`, partagées avec « Ajouter un membre ». Ne sont pas
-// saisis : l'email (celui du compte, en lecture seule) et la photo (le back ne
-// la modifie pas ici).
+// `MemberRecordFields`, partagées avec « Ajouter un membre », qui lisent le
+// formulaire par le `FormProvider`. Ne sont pas saisis : l'email (celui du
+// compte, en lecture seule) et la photo (le back ne la modifie pas ici).
 export function MemberProfileForm({ member }: MemberProfileFormProps) {
   const navigate = useNavigate();
   const updateMember = useUpdateMember();
@@ -54,30 +54,31 @@ export function MemberProfileForm({ member }: MemberProfileFormProps) {
   });
 
   return (
-    <form onSubmit={onSubmit} noValidate className="flex flex-col gap-5">
-      <MemberFormHeader
-        title="Modifier la fiche"
-        backTo={returnTo}
-        backLabel={getFullName(getMemberName(member))}
-        submitLabel="Enregistrer les modifications"
-        submitShortLabel="Enregistrer"
-        pending={updateMember.isPending}
-        onCancel={() => void navigate(returnTo)}
-      />
-      <MemberRecordFields
-        form={form}
-        emailField={
-          <FormField
-            label="Adresse e-mail"
-            type="email"
-            required
-            value={profile?.contact_mail ?? member.mail}
-            readOnly
-            className="bg-muted text-muted-foreground"
-          />
-        }
-        storedRelationships={profile?.emergency_contact?.relationships}
-      />
-    </form>
+    <FormProvider {...form}>
+      <form onSubmit={onSubmit} noValidate className="flex flex-col gap-5">
+        <MemberFormHeader
+          title="Modifier la fiche"
+          backTo={returnTo}
+          backLabel={getFullName(getMemberName(member))}
+          submitLabel="Enregistrer les modifications"
+          submitShortLabel="Enregistrer"
+          pending={updateMember.isPending}
+          onCancel={() => void navigate(returnTo)}
+        />
+        <MemberRecordFields
+          emailField={
+            <FormField
+              label="Adresse e-mail"
+              type="email"
+              required
+              value={profile?.contact_mail ?? member.mail}
+              readOnly
+              className="bg-muted text-muted-foreground"
+            />
+          }
+          storedRelationships={profile?.emergency_contact?.relationships}
+        />
+      </form>
+    </FormProvider>
   );
 }

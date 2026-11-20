@@ -27,12 +27,17 @@ export function applyServerErrors<TFieldValues extends FieldValues>(
   const { message, errors = {} } = error.response.data;
   const fields = Object.entries(errors);
 
-  for (const [field, messages] of fields) {
-    setError(field as FieldPath<TFieldValues>, {
-      type: 'server',
-      message: messages[0],
-    });
-  }
+  fields.forEach(([field, messages], index) => {
+    setError(
+      field as FieldPath<TFieldValues>,
+      { type: 'server', message: messages[0] },
+      // Le premier champ de la réponse prend le focus : sur un long formulaire,
+      // l'erreur peut être hors de l'écran et le bouton d'envoi sembler ne rien
+      // faire. La page se cale sous la barre collée (`scroll-padding-top`). Un
+      // champ sans référence focalisable (liste de pastilles) ne bouge pas.
+      { shouldFocus: index === 0 },
+    );
+  });
 
   if (fields.length === 0) {
     setError('root.server', { type: 'server', message });

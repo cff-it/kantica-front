@@ -654,17 +654,24 @@ gauche des deux autres dès `lg` (emplacement non maquetté, choisi par défaut)
   `createMemberSchema` est `memberRecordSchema` plus `mail` (`trim`, email valide, 255 au plus) ;
   `getNewMemberDefaults()` donne la fiche vide (voix à choisir) et `toCreateMemberInput()` le corps du POST
   (sans `voice`).
-- **Typage** : `MemberCreateForm` passe son formulaire aux cartes par un élargissement
-  `as unknown as UseFormReturn<MemberRecordInput>` (commenté dans le fichier) : le `watch` de React Hook Form est
-  invariant et refuse un formulaire qui a un champ en plus. Les cartes ne lisent que des champs de la fiche ; si
-  elles devaient lire un champ de compte, passer à `FormProvider` et `useFormContext`.
+- **Typage** : les deux formulaires (`MemberCreateForm`, `MemberProfileForm`) s'enveloppent dans un `FormProvider`
+  et les cartes (`member-record-sections.tsx`, `MemberRecordFields`) lisent le formulaire par `useRecordForm()`
+  (`hooks/use-record-form.ts`, un `useFormContext<MemberRecordInput>()`) : plus de prop `form`, plus de cast. Un
+  `UseFormReturn` passé en prop est invariant (`watch`) et refuse un formulaire qui a un champ en plus, comme
+  `mail` à l'ajout. Le type des valeurs est posé une seule fois dans le hook : React Hook Form ne vérifie pas que
+  le provider le porte, c'est vrai parce que `createMemberSchema` étend `memberRecordSchema`. Les cartes ne
+  lisent que des champs de la fiche ; un champ de compte se lit dans le formulaire parent (comme `mail`).
 - **Après l'envoi** : toast « Invitation envoyée à {mail} » (le `mail` de la réponse, donc nettoyé et en
   minuscules), puis fiche du nouveau membre. `useCreateMember` (`networkMode: 'always'`) invalide `memberKeys.all` :
   la liste et ses effectifs sont rechargés à son retour. Le membre est actif : pas de badge « En attente ».
-- **Erreurs** : une 422 est posée sous les champs par `applyServerErrors`. L'email déjà utilisé (« Cette adresse
-  email est déjà utilisée. ») est la plus probable, et son champ est en haut d'un long formulaire : hors de
-  l'écran dès que la page a défilé, la secrétaire ne verrait rien. `onError` lui donne donc le focus
-  (`setFocus('mail')`, la page se cale sous la barre collée). Toute autre erreur ouvre un toast.
+- **Erreurs** : une 422 est posée sous les champs par `applyServerErrors`, qui donne le **focus au premier champ**
+  de la réponse (`shouldFocus` sur le premier `setError` seulement ; la page se cale sous la barre collée grâce à
+  `scroll-padding-top`). Sur un long formulaire, une erreur hors de l'écran laisserait croire que le bouton ne fait
+  rien : le plus probable est l'email déjà utilisé (« Cette adresse email est déjà utilisée. »), en haut du
+  formulaire, mais une date ou un téléphone refusés par le back sont dans le même cas. Cela vaut pour tous les
+  formulaires qui passent par `applyServerErrors` (un champ sans référence focalisable, comme les pastilles, ne
+  bouge pas). Un 403 ouvre le toast « Vous n'avez pas le droit d'ajouter un membre. » (`isForbiddenError`), toute
+  autre erreur le toast « Impossible d'ajouter le membre. Réessayez. ».
 - **Vérifié contre le vrai back** (branche `feature/kan-89-add-member`, base de dev, compte secrétaire) à 390 px
   et 1440 px : création réussie (201, compte actif, fiche complète, dates partielles, téléphones E.164, mail
   d'invitation journalisé, aucun job en échec), validation client (18 messages, aucune requête), email en
@@ -672,6 +679,11 @@ gauche des deux autres dès `lg` (emplacement non maquetté, choisi par défaut)
   (effectif et voix à jour, pas de badge), compte `membre` refusé (403 du back, redirection du front). Le membre
   de test `kan90.test@scenarios.kantica.test` est resté dans la base de dev (le seeder
   `MemberReferenceSeeder` purge ce domaine).
+- **Revérifié après la revue de la PR** (`FormProvider`, focus du premier champ en erreur, toast 403) à 390 px :
+  email en doublon et 422 sur la date de naissance (focus et message visibles sous la barre collée, formulaire
+  conservé), 403 d'un compte `membre` (toast dédié, aucune alerte de champ), modification d'une fiche (pré-remplie,
+  422 simulée avec le même focus, PUT 200 réussi). Le membre de test `kan90.nonmail@scenarios.kantica.test` est
+  resté dans la base de dev (domaine purgé par le seeder).
 
 ## Export de la liste des membres
 
