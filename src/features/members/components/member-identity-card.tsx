@@ -1,13 +1,16 @@
+import { RoleGuard } from '@/components/common/role-guard';
 import { getFullName } from '@/lib/names';
+import { findRole, getHighestRole } from '@/lib/roles';
 import { findVoice } from '@/lib/voices';
 import type { User } from '@/types';
 
 import { canChangeVoice, toDisplayDate } from '../record';
 import { getMemberName } from '../utils';
+import { ChangeRoleDialog } from './change-role-dialog';
 import { ChangeVoiceDialog } from './change-voice-dialog';
 import { DetailRow, DetailRows, DetailsCard } from './member-detail-row';
 
-// Valeur affichée quand la voix n'est pas renseignée.
+// Valeur affichée quand la voix ou le rôle n'est pas renseigné.
 const EMPTY_VALUE = '-';
 
 type MemberIdentityCardProps = {
@@ -38,6 +41,14 @@ export function MemberIdentityCard({ member }: MemberIdentityCardProps) {
           {canChangeVoice(member) ? (
             <ChangeVoiceDialog member={member} fullName={getFullName(name)} />
           ) : null}
+        </DetailRow>
+        {/* Rôle (KAN-63) : visible par la secrétaire, modifiable par l'admin
+            seulement (« Changer » masqué sinon, refusé par le back). */}
+        <DetailRow label="Rôle">
+          {findRole(getHighestRole(member))?.label ?? EMPTY_VALUE}
+          <RoleGuard roles={['admin']}>
+            <ChangeRoleDialog member={member} fullName={getFullName(name)} />
+          </RoleGuard>
         </DetailRow>
       </DetailRows>
     </DetailsCard>

@@ -18,6 +18,8 @@ export const paths = {
   membersImportReport: '/members/import/:id',
   // Ajout d'un membre : le segment fixe `new` l'emporte sur `:id` de `member`.
   memberNew: '/members/new',
+  // « Gestion des rôles » (admin) : le segment fixe `roles` l'emporte sur `:id`.
+  memberRoles: '/members/roles',
   member: '/members/:id',
   memberEdit: '/members/:id/edit',
   profile: '/profile',

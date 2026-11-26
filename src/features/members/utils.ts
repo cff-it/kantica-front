@@ -1,9 +1,10 @@
 import { isAxiosError } from 'axios';
 
+import { getValidationMessage } from '@/lib/form-errors';
 import { findVoice } from '@/lib/voices';
 import type { User, Voice } from '@/types';
 
-import type { MembersMeta } from './types';
+import type { MembersMeta, RoleCounts } from './types';
 
 // Sous-titre de la page : « 9 choristes recensés ».
 export function getRegisteredLabel(count: number): string {
@@ -74,4 +75,36 @@ export function getMemberName(member: User): {
     first_name: member.profile?.first_name ?? null,
     last_name: member.profile?.last_name ?? member.last_name,
   };
+}
+
+// Sous-titre de « Gestion des rôles » : « 1 admin · 1 secrétaire · 5 membres ».
+export function getRoleCountsLabel(counts: RoleCounts): string {
+  const plural = (count: number, word: string) =>
+    `${count} ${word}${count > 1 ? 's' : ''}`;
+
+  return [
+    plural(counts.admin, 'admin'),
+    plural(counts.secretaire, 'secrétaire'),
+    plural(counts.membre, 'membre'),
+  ].join(' · ');
+}
+
+// Prénom affiché dans « Rôle de {prénom} » : le premier prénom, sinon le nom.
+export function getCallName(user: {
+  first_name: string | null;
+  last_name: string;
+}): string {
+  return user.first_name?.split(' ')[0] || user.last_name;
+}
+
+// Message d'un changement de rôle refusé : la raison d'une 422 (dernier admin,
+// compte administrateur originel), car un nouvel essai échouerait pareil ; un
+// message dédié pour un 403 ; sinon, inviter à réessayer.
+export function getRoleErrorMessage(error: unknown): string {
+  return (
+    getValidationMessage(error, 'role') ??
+    (isForbiddenError(error)
+      ? 'Seul un admin peut changer les rôles.'
+      : 'Impossible de changer le rôle. Réessayez.')
+  );
 }
