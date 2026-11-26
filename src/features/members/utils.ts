@@ -59,6 +59,31 @@ export function isNotFoundError(error: unknown): boolean {
   return isAxiosError(error) && error.response?.status === 404;
 }
 
+type LaravelValidationError = {
+  message?: string;
+  errors?: Record<string, string[]>;
+};
+
+// Message d'une 422 de Laravel pour un champ (à défaut, le message général),
+// `null` pour toute autre erreur. Sert aux actions sans formulaire RHF, où
+// `applyServerErrors` n'a pas de champ où poser l'erreur : un nouvel essai
+// échouerait de la même façon, il faut donc en donner la raison.
+export function getValidationMessage(
+  error: unknown,
+  field: string,
+): string | null {
+  if (
+    !isAxiosError<LaravelValidationError>(error) ||
+    error.response?.status !== 422
+  ) {
+    return null;
+  }
+
+  const data = error.response.data;
+
+  return data?.errors?.[field]?.[0] ?? data?.message ?? null;
+}
+
 // Le back répond 403 quand le rôle ne suffit pas, ou (rapport d'import) quand
 // l'import a été lancé par quelqu'un d'autre qu'un admin.
 export function isForbiddenError(error: unknown): boolean {
