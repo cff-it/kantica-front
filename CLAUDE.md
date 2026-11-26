@@ -525,12 +525,17 @@ Routes `/members/:id` (`paths.member`, `MemberDetailPage`) et `/members/:id/edit
   répond 422 et le lien est masqué (« Modifier » la fait remplir). Le back garde la voix précise (`voice`, ex.
   « A2 ») tant que le groupe ne change pas et l'efface sinon. Même groupe : la feuille se ferme sans requête.
   Succès : toast « Voix modifiée. », `memberKeys.all` et `authKeys.me()` invalidés (fiche, liste, effectifs par
-  voix, carte de la barre latérale). 403 : toast dédié ; autre erreur : « Impossible de modifier la voix. ».
+  voix, carte de la barre latérale). 422 (membre sans fiche, voix refusée) : toast avec la raison du back
+  (`getValidationMessage` de `utils.ts`, message du champ `voice` ou message général), car un nouvel essai
+  échouerait pareil ; 403 : toast dédié ; réseau et 5xx : « Impossible de modifier la voix. Réessayez. ».
+  `profile.completed` veut dire « fiche enregistrée » (`profile !== null` côté back), pas « fiche complète » :
+  c'est la règle exacte de la route.
   **Vérifié contre le vrai back** (branches `feature/kan-34-assign-voice` et `feature/kan-64-assign-voice`, compte
   admin) à 1440 px en clair et à 375 px en sombre : fiche incomplète (Alto vers Ténor puis Ténor vers Alto, voix
   précise A2 effacée, téléphone conservé en base), badge et effectifs de la liste à jour, lien masqué pour un
-  membre sans fiche. **Non vérifié** à l'écran : les toasts 403 et d'erreur réseau (couverts côté back par les
-  tests). Les membres de test (`kan15.*@scenarios.kantica.test`) ont été purgés par `MemberReferenceSeeder`.
+  membre sans fiche, vrai 422 (fiche supprimée en base pendant que la feuille était ouverte : toast avec la raison
+  du back, puis base remise en état par le seeder). **Non vérifié** à l'écran : les toasts 403 et d'erreur réseau
+  (le 403 est couvert côté back par les tests). Les membres de test (`kan15.*@scenarios.kantica.test`) ont été purgés par `MemberReferenceSeeder`.
 - **Modifier la fiche** (`MemberProfileForm`, maquettes `01-Lot1-Recensement/{mobile,web}/11-Modification-fiche-membre`) :
   `PUT /api/members/{id}` est **complet** (`UpdateMemberProfileRequest`) : toute la fiche est envoyée à chaque
   enregistrement et un champ facultatif envoyé à `null` est effacé. Six cartes (`member-record-sections.tsx`,

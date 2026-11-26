@@ -18,7 +18,7 @@ import { toVoice } from '@/lib/voices';
 import type { User, Voice } from '@/types';
 
 import { useAssignMemberVoice } from '../hooks/use-assign-member-voice';
-import { isForbiddenError } from '../utils';
+import { getValidationMessage, isForbiddenError } from '../utils';
 
 type ChangeVoiceDialogProps = {
   member: User;
@@ -65,11 +65,15 @@ export function ChangeVoiceDialog({
           setOpen(false);
           toast.success('Voix modifiée.');
         },
+        // 422 (membre sans fiche, voix refusée) : la raison du back, car un
+        // nouvel essai échouerait pareil. « Réessayez » reste pour le réseau
+        // et les erreurs serveur.
         onError: (error) => {
           toast.error(
-            isForbiddenError(error)
-              ? 'Vous n\'avez pas le droit de modifier la voix de ce membre.'
-              : 'Impossible de modifier la voix. Réessayez.',
+            getValidationMessage(error, 'voice') ??
+              (isForbiddenError(error)
+                ? 'Vous n\'avez pas le droit de modifier la voix de ce membre.'
+                : 'Impossible de modifier la voix. Réessayez.'),
           );
         },
       },

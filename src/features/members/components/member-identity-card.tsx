@@ -16,8 +16,12 @@ type MemberIdentityCardProps = {
 
 // Bloc « Identité » de la fiche : nom, prénom, naissance et voix, avec le lien
 // « Changer » qui ouvre la feuille « Attribuer la voix » (KAN-15), proposé dès
-// que la fiche existe, même incomplète. Sans fiche, le back répondrait 422 :
-// « Modifier » la fait remplir d'abord. Comme dans le
+// que la fiche existe, même incomplète. Attention : `profile.completed` ne veut
+// pas dire « fiche complète » mais « fiche enregistrée » (MemberProfileResource
+// du back : `profile !== null`), c'est exactement la règle de
+// `PUT /members/{id}/voice`. Sans fiche, le back répondrait 422 : « Modifier »
+// la fait remplir d'abord. `member.profile` lui-même est toujours présent dans
+// la réponse de la fiche, il ne suffit donc pas à tester l'existence. Comme dans le
 // formulaire « Modifier la fiche », sauf la voix, qui reste ici (ticket KAN-60)
 // au lieu de la carte Chorale.
 export function MemberIdentityCard({ member }: MemberIdentityCardProps) {
