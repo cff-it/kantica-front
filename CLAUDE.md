@@ -67,7 +67,8 @@ src/
 │                             # InitialsAvatar (pastille d'initiales), ListPagination (pages précédente et
 │                             # suivante des listes), SearchField (recherche des listes : membres, rôles,
 │                             # répertoire), RoleBadge (badge du rôle), ThemeSwitch (interrupteur
-│                             # « Mode sombre » du Profil)
+│                             # « Mode sombre » du Profil), SegmentedControl (choix unique en segments :
+│                             # Couplet / Refrain)
 │
 ├── lib/
 │   ├── api-client.ts         # Instance Axios unique (jeton Bearer, intercepteur 401)
@@ -786,6 +787,34 @@ et `09-Import-membres-verification`. Entrée : bouton « Importer (Excel) » (`I
   fichier, aperçu, 422, `.pdf` et 6 Mo refusés, import avec progression, rapport, historique (quatre statuts),
   403 et 404. **Non vérifié contre le vrai back** : un aperçu et un import réels d'un fichier Excel (aucun compte
   admin ou secrétaire connu dans la base de dev, migration `file_name` non jouée).
+
+## Sections d'un cantique
+
+Éditeur des sections (couplets et refrains) du formulaire d'un cantique : `SongSectionsEditor`
+(`features/songs`). Maquettes `03-Repertoire-et-voix/{mobile/04,web/03}-Edition-cantique-admin`. Le reste du
+formulaire (titre, auteur, référence, thème), ses routes et ses appels API ne sont pas encore construits :
+l'éditeur est prêt à être posé dedans.
+
+- **Branchement** : dans un `FormProvider` dont le schéma contient `sections: songSectionsSchema`. Les cartes lisent
+  le formulaire par `useSongForm()` (même principe que `useRecordForm` de `members`). Valeurs de départ :
+  `getSectionsDefaults(song.sections)` ; corps du POST et du PUT : `toSectionsPayload(values.sections)`.
+- **Back** (`SongRequest`) : `sections: [{id?, type, number?, text}]`, liste complète et ordonnée. L'ordre envoyé est
+  la position, une section sans `id` est créée, une section absente de la liste est supprimée. `text` est obligatoire
+  (un 422 sur `sections.N.text` est posé sous le bon champ par `applyServerErrors`).
+- **Champs invisibles** : `section_id` (et non `id`, réservé par `useFieldArray`) et `number` (numéro saisi, Couplet
+  1, 2, 3) voyagent avec la section sans être affichés. Sans eux, le PUT recréerait chaque section et effacerait les
+  numéros. Changer le type ne touche pas à `number`. Le type `pont` du back n'est pas proposé par le sélecteur : une
+  section `pont` existante est conservée, sans segment coché.
+- **Écarts avec les maquettes** : « Supprimer » (avec confirmation, `DeleteSectionDialog`) est sous le texte de
+  chaque carte, car la maquette n'a pas de suppression et trois boutons de 44 px ne tiennent pas dans l'en-tête à
+  390 px. Flèche haut désactivée sur la première carte, flèche bas sur la dernière. État vide (« Aucune section »).
+  « + Couplet » et « + Refrain » aussi en mobile (la maquette mobile est coupée avant).
+- **Accessibilité** : après un déplacement, le focus reste sur la flèche utilisée ; après une suppression, il passe
+  au texte de la section voisine ; un ajout focalise son texte. Une région `role="status"` annonce chaque action.
+  `SegmentedControl` (`components/common/`) repose sur des radios natifs : les flèches du clavier changent de type.
+- **Vérifié** dans le navigateur sur une page temporaire, retirée ensuite (390 px et 1440 px, clair et sombre) :
+  réordonnancement, ajout, suppression et annulation, validation, corps envoyé (ids, ordre, `number`, `pont`) et
+  clavier. **Non vérifié contre le vrai back** : aucun appel API de cantique n'existe encore.
 
 ---
 

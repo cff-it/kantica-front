@@ -1,0 +1,61 @@
+import type { SongSectionInput } from './schemas';
+import type { SectionType, SongSection, SongSectionPayload } from './types';
+
+// Tous les types connus du back, `pont` compris.
+export const SECTION_TYPES = ['couplet', 'refrain', 'pont'] as const;
+
+// Types que le sélecteur propose (maquette 04-Edition-cantique-admin).
+export const SECTION_TYPE_OPTIONS = [
+  { value: 'couplet', label: 'Couplet' },
+  { value: 'refrain', label: 'Refrain' },
+] as const;
+
+export const SECTION_TYPE_LABELS: Record<SectionType, string> = {
+  couplet: 'Couplet',
+  refrain: 'Refrain',
+  pont: 'Pont',
+};
+
+// Valeurs de départ du formulaire : les sections du cantique, dans l'ordre de
+// leur position. L'identifiant (`section_id`) et le numéro saisi (`number`)
+// ne sont pas affichés mais voyagent avec la section : le PUT remplace la
+// liste, et une section renvoyée sans `id` serait recréée au lieu d'être mise
+// à jour, un `number` omis serait effacé.
+export function getSectionsDefaults(
+  sections: SongSection[] = [],
+): SongSectionInput[] {
+  return [...sections]
+    .sort((a, b) => a.position - b.position)
+    .map((section) => ({
+      section_id: section.id,
+      type: section.type,
+      number: section.number,
+      text: section.text,
+    }));
+}
+
+// Section ajoutée par « + Couplet » ou « + Refrain » : pas encore enregistrée
+// (pas d'identifiant), sans numéro saisi, texte à écrire.
+export function createEmptySection(
+  type: 'couplet' | 'refrain',
+): SongSectionInput {
+  return { section_id: null, type, number: null, text: '' };
+}
+
+// Corps des sections du POST et du PUT : l'ordre de la liste est l'ordre
+// affiché, le back en tire la position de chaque section.
+export function toSectionsPayload(
+  sections: SongSectionInput[],
+): SongSectionPayload[] {
+  return sections.map(({ section_id, type, number, text }) => ({
+    ...(section_id === null ? {} : { id: section_id }),
+    type,
+    number,
+    text,
+  }));
+}
+
+// « 0 section », « 1 section », « 3 sections » : le pluriel dès deux.
+export function getSectionCountLabel(count: number): string {
+  return `${count} section${count > 1 ? 's' : ''}`;
+}

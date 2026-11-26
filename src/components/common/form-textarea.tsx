@@ -10,6 +10,9 @@ type FormTextareaProps = ComponentProps<'textarea'> & {
   hint?: ReactNode;
   // Mention « (facultatif) » après le libellé.
   optional?: boolean;
+  // Libellé réservé aux lecteurs d'écran : pour un champ dont le contexte
+  // visuel (une carte numérotée) tient lieu de libellé.
+  hideLabel?: boolean;
 };
 
 // Zone de texte multiligne : même gabarit que `FormField` (libellé, indice et
@@ -21,6 +24,7 @@ export function FormTextarea({
   error,
   hint,
   optional,
+  hideLabel,
   required,
   id,
   className,
@@ -36,9 +40,15 @@ export function FormTextarea({
 
   return (
     <div className="space-y-2">
-      <FieldLabel htmlFor={textareaId} required={required} optional={optional}>
-        {label}
-      </FieldLabel>
+      <div className={hideLabel ? 'sr-only' : undefined}>
+        <FieldLabel
+          htmlFor={textareaId}
+          required={required}
+          optional={optional}
+        >
+          {label}
+        </FieldLabel>
+      </div>
       <textarea
         id={textareaId}
         rows={3}

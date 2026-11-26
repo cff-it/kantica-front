@@ -24,3 +24,31 @@ export type SongsQuery = {
   search?: string;
   page?: number;
 };
+
+// Valeurs de l'enum SectionType du back. L'interface ne propose que couplet et
+// refrain (maquette 04-Edition-cantique-admin) ; `pont` existe côté back et
+// reste lisible et conservé s'il est déjà enregistré.
+export type SectionType = 'couplet' | 'refrain' | 'pont';
+
+// Calqué sur les sections de `SongResource` (champs en snake_case, comme
+// renvoyés par l'API). `number` est le numéro saisi (Couplet 1, 2, 3), null
+// s'il n'y en a pas ; `position` est le rang dans le cantique.
+export type SongSection = {
+  id: number;
+  uuid: string;
+  type: SectionType;
+  number: number | null;
+  text: string;
+  position: number;
+};
+
+// Une section dans le corps du POST et du PUT d'un cantique (`SongRequest`) :
+// `id` est absent pour une section nouvelle. La liste est complète et
+// ordonnée : son ordre est la position des sections, et une section absente de
+// la liste est supprimée.
+export type SongSectionPayload = {
+  id?: number;
+  type: SectionType;
+  number: number | null;
+  text: string;
+};
