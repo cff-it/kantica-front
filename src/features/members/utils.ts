@@ -108,3 +108,12 @@ export function getRoleErrorMessage(error: unknown): string {
       : 'Impossible de changer le rôle. Réessayez.')
   );
 }
+
+// Le membre a une fiche de recensement enregistrée. `profile.completed` ne veut
+// pas dire « fiche complète » mais « fiche enregistrée » (MemberProfileResource
+// du back : `profile !== null`) : c'est la règle de `PUT /members/{id}/voice`,
+// qui répond 422 sans fiche. `member.profile` lui-même est toujours présent dans
+// la réponse de la fiche, il ne suffit donc pas.
+export function hasMemberRecord(member: User): boolean {
+  return member.profile?.completed === true;
+}

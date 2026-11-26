@@ -2,13 +2,9 @@ import type { DefaultValues } from 'react-hook-form';
 
 import { joinPhones, splitPhones } from '@/lib/phone';
 import { toVoice } from '@/lib/voices';
-import type { MemberSacrament, User, Voice } from '@/types';
+import type { MemberSacrament, User } from '@/types';
 
-import {
-  memberRecordSchema,
-  type CreateMemberFormInput,
-  type MemberRecordInput,
-} from './schemas';
+import type { CreateMemberFormInput, MemberRecordInput } from './schemas';
 import type {
   CreateMemberInput,
   UpdateMemberInput,
@@ -144,29 +140,4 @@ export function toCreateMemberInput(
   values: CreateMemberFormInput,
 ): CreateMemberInput {
   return { mail: values.mail, ...toUpdateMemberInput(values) };
-}
-
-// Le PUT est complet : changer la voix renvoie toute la fiche avec le nouveau
-// groupe. `null` quand la fiche n'est pas complète (le back répondrait 422).
-export function getVoiceChangeInput(
-  member: User,
-  voiceGroup: Voice,
-): UpdateMemberInput | null {
-  const record = memberRecordSchema.safeParse({
-    ...getMemberRecordDefaults(member),
-    voice_group: voiceGroup,
-  });
-
-  return record.success ? toUpdateMemberInput(record.data) : null;
-}
-
-// « Changer » la voix n'est proposé que pour une fiche complète : sinon,
-// « Modifier » demande les champs manquants.
-export function canChangeVoice(member: User): boolean {
-  const voiceGroup = toVoice(member.profile?.voice_group);
-
-  return (
-    voiceGroup !== undefined &&
-    getVoiceChangeInput(member, voiceGroup) !== null
-  );
 }

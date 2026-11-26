@@ -525,14 +525,26 @@ Routes `/members/:id` (`paths.member`, `MemberDetailPage`) et `/members/:id/edit
   /api/members/{id}/validate`. La réponse est une `UserResource` **sans `profile` ni prénoms** : on invalide
   `memberKeys.all` au lieu de `setQueryData`, sinon la fiche perdrait ses coordonnées. Bouton « Valider »
   sous `lg`, « Valider le compte » dès `lg` (un seul bouton, `aria-label` fixe).
-- **Changement de voix** (`ChangeVoiceDialog`, lien « Changer ») : feuille en bas sur mobile, fenêtre centrée
-  dès `md` (`SheetDialogContent`). `PUT /api/members/{id}` est **complet** (voir « Modifier la fiche ») : la
-  feuille renvoie toute la fiche du membre avec le nouveau groupe (`getVoiceChangeInput` de `record.ts`, qui
-  rejoue le schéma du formulaire sur les valeurs de la fiche). Le lien n'apparaît donc que si
-  `canChangeVoice(member)` : fiche complète, sinon le back répondrait 422 et « Modifier » demande les champs
-  manquants. Changer de groupe n'envoie **pas** la voix précise (`voice`, ex. « A2 ») : sans `voice`, le back la
-  garde tant que le groupe ne change pas, et il refuse une voix qui n'appartient pas au groupe. Même groupe :
-  la feuille se ferme sans requête.
+- **Attribution de la voix** (KAN-15 / KAN-64, `ChangeVoiceDialog`, lien « Changer », maquettes
+  `03-Repertoire-et-voix/{mobile,web}/*-Attribution-voix`) : feuille en bas sur mobile, fenêtre centrée dès `md`
+  (`SheetDialogContent`). Route dédiée `PUT /api/members/{id}/voice` avec `{ voice: 'S' | 'A' | 'T' | 'B' }`
+  (KAN-34 côté back, `assignMemberVoice`, `useAssignMemberVoice`) : seule la voix est envoyée, la fiche n'a pas
+  besoin d'être complète. Le lien apparaît dès que la fiche existe (`profile.completed`) ; sans fiche, le back
+  répond 422 et le lien est masqué (« Modifier » la fait remplir). Le back garde la voix précise (`voice`, ex.
+  « A2 ») tant que le groupe ne change pas et l'efface sinon. Même groupe : la feuille se ferme sans requête.
+  Succès : toast « Voix modifiée. », `memberKeys.all` et `authKeys.me()` invalidés (fiche, liste, effectifs par
+  voix, carte de la barre latérale). 422 (membre sans fiche, voix refusée) : toast avec la raison du back
+  (`getValidationMessage` de `lib/form-errors.ts` : message du champ `voice`, sinon le premier message de la
+  réponse, jamais le `message` général de Laravel qui peut finir en anglais), car un nouvel essai échouerait
+  pareil ; 403 : toast dédié ; réseau et 5xx : « Impossible de modifier la voix. Réessayez. ».
+  Le lien n'apparaît que si `hasMemberRecord(member)` (`utils.ts`) : `profile.completed` veut dire « fiche
+  enregistrée » (`profile !== null` côté back), pas « fiche complète », c'est la règle exacte de la route.
+  **Vérifié contre le vrai back** (branches `feature/kan-34-assign-voice` et `feature/kan-64-assign-voice`, compte
+  admin) à 1440 px en clair et à 375 px en sombre : fiche incomplète (Alto vers Ténor puis Ténor vers Alto, voix
+  précise A2 effacée, téléphone conservé en base), badge et effectifs de la liste à jour, lien masqué pour un
+  membre sans fiche, vrai 422 (fiche supprimée en base pendant que la feuille était ouverte : toast avec la raison
+  du back, puis base remise en état par le seeder). **Non vérifié** à l'écran : les toasts 403 et d'erreur réseau
+  (le 403 est couvert côté back par les tests). Les membres de test (`kan15.*@scenarios.kantica.test`) ont été purgés par `MemberReferenceSeeder`.
 - **Modifier la fiche** (`MemberProfileForm`, maquettes `01-Lot1-Recensement/{mobile,web}/11-Modification-fiche-membre`) :
   `PUT /api/members/{id}` est **complet** (`UpdateMemberProfileRequest`) : toute la fiche est envoyée à chaque
   enregistrement et un champ facultatif envoyé à `null` est effacé. Six cartes (`member-record-sections.tsx`,
@@ -913,6 +925,8 @@ npm run lint     # ESLint
      (Excel) »)
    - [x] KAN-90 : ajout d'un membre (formulaire de la fiche en mode création, invitation par mail ; voir
      « Ajout d'un membre »)
+   - [x] KAN-64 (Lot 2, US-10) : attribution de la voix par la route dédiée, même sur une fiche incomplète
+     (voir « Fiche membre », « Attribution de la voix »)
 4. Lot 2
    - [x] KAN-63 : écran Profil (maquette 06-Profil), « Gestion des rôles » dans Membres et ligne « Rôle » de la
      fiche (voir « Profil », « Gestion des rôles »)

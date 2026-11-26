@@ -14,11 +14,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { getValidationMessage } from '@/lib/form-errors';
 import { toVoice } from '@/lib/voices';
 import type { User, Voice } from '@/types';
 
-import { useUpdateMember } from '../hooks/use-update-member';
-import { getVoiceChangeInput } from '../record';
+import { useAssignMemberVoice } from '../hooks/use-assign-member-voice';
+import { isForbiddenError } from '../utils';
 
 type ChangeVoiceDialogProps = {
   member: User;
@@ -27,8 +28,8 @@ type ChangeVoiceDialogProps = {
 
 // Lien « Changer » de la ligne Voix et feuille « Attribuer la voix » qu'il
 // ouvre (maquettes 03-Repertoire-et-voix/Attribution-voix) : feuille en bas sur
-// mobile, fenêtre centrée dès `md`. Le PUT du back est complet : on renvoie
-// toute la fiche du membre avec la nouvelle voix (`getVoiceChangeInput`).
+// mobile, fenêtre centrée dès `md`. Seule la voix est envoyée
+// (`PUT /members/{id}/voice`) : une fiche incomplète se change aussi.
 export function ChangeVoiceDialog({
   member,
   fullName,
@@ -36,7 +37,7 @@ export function ChangeVoiceDialog({
   const currentVoice = toVoice(member.profile?.voice_group);
   const [open, setOpen] = useState(false);
   const [voice, setVoice] = useState<Voice | undefined>(currentVoice);
-  const updateMember = useUpdateMember();
+  const assignVoice = useAssignMemberVoice();
 
   // La feuille s'ouvre toujours sur la voix actuelle, même après une annulation.
   const onOpenChange = (next: boolean) => {
@@ -56,25 +57,25 @@ export function ChangeVoiceDialog({
       return;
     }
 
-    // La voix précise de la fiche (A2...) n'est pas renvoyée : elle appartient
-    // à l'ancien groupe et le back la refuserait (422).
-    const input = getVoiceChangeInput(member, voice);
-
-    if (!input) {
-      toast.error('La fiche est incomplète : utilisez « Modifier ».');
-
-      return;
-    }
-
-    updateMember.mutate(
-      { id: member.id, input },
+    // Le back garde la voix précise (A2...) tant que le groupe ne change pas,
+    // et l'efface sinon : elle n'appartiendrait plus au groupe.
+    assignVoice.mutate(
+      { id: member.id, voice },
       {
         onSuccess: () => {
           setOpen(false);
           toast.success('Voix modifiée.');
         },
-        onError: () => {
-          toast.error('Impossible de modifier la voix. Réessayez.');
+        // 422 (membre sans fiche, voix refusée) : la raison du back, car un
+        // nouvel essai échouerait pareil. « Réessayez » reste pour le réseau
+        // et les erreurs serveur.
+        onError: (error) => {
+          toast.error(
+            getValidationMessage(error, 'voice') ??
+              (isForbiddenError(error)
+                ? 'Vous n\'avez pas le droit de modifier la voix de ce membre.'
+                : 'Impossible de modifier la voix. Réessayez.'),
+          );
         },
       },
     );
@@ -106,7 +107,7 @@ export function ChangeVoiceDialog({
             layout="sheet"
             value={voice}
             onChange={setVoice}
-            disabled={updateMember.isPending}
+            disabled={assignVoice.isPending}
           />
           <DialogFooter className="gap-3 sm:items-center">
             <DialogClose asChild>
@@ -120,7 +121,7 @@ export function ChangeVoiceDialog({
             </DialogClose>
             <ActionButton
               type="submit"
-              loading={updateMember.isPending}
+              loading={assignVoice.isPending}
               disabled={!voice}
               className="sm:w-auto"
             >
