@@ -75,6 +75,12 @@ export type UpdateMemberInput = {
   };
 };
 
+// Variables de `useAssignMemberVoice` : le groupe de voix seul (S, A, T, B).
+export type AssignMemberVoiceVariables = {
+  id: number;
+  voice: Voice;
+};
+
 // Variables de `useUpdateMember`.
 export type UpdateMemberVariables = {
   id: number;
