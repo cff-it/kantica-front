@@ -1,6 +1,7 @@
 import { ChevronRight } from 'lucide-react';
 import { Link } from 'react-router';
 
+import { InitialsAvatar } from '@/components/common/initials-avatar';
 import { VoiceBadge } from '@/components/common/voice-badge';
 import { LG_MEDIA_QUERY, useMediaQuery } from '@/hooks/use-media-query';
 import { getMemberPath } from '@/lib/paths';
@@ -8,7 +9,6 @@ import { formatPhone, splitPhones } from '@/lib/phone';
 import { cn } from '@/lib/utils';
 
 import type { MemberListItem } from '../types';
-import { MemberAvatar } from './member-avatar';
 import { MemberName } from './member-name';
 
 // Valeur affichée quand une coordonnée n'est pas renseignée.
@@ -64,7 +64,7 @@ function MembersRows({ members }: MembersListProps) {
             to={getMemberPath(member.id)}
             className="flex items-center gap-4 rounded-lg py-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
           >
-            <MemberAvatar member={member} />
+            <InitialsAvatar person={member} />
             <div className="min-w-0 flex-1 space-y-1.5">
               <p className="text-base">
                 <MemberName member={member} />
@@ -121,7 +121,7 @@ function MembersTable({ members }: MembersListProps) {
             >
               <td className="px-5 py-3">
                 <div className="flex items-center gap-4">
-                  <MemberAvatar member={member} className="size-9 text-xs" />
+                  <InitialsAvatar person={member} className="size-9 text-xs" />
                   <Link
                     to={getMemberPath(member.id)}
                     className="outline-none after:absolute after:inset-0"

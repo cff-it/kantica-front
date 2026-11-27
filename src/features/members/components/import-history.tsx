@@ -2,6 +2,7 @@ import { ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router';
 
+import { ListPagination } from '@/components/common/list-pagination';
 import { Button } from '@/components/ui/button';
 import { LG_MEDIA_QUERY, useMediaQuery } from '@/hooks/use-media-query';
 import { getFullName } from '@/lib/names';
@@ -16,7 +17,6 @@ import {
 } from '../imports';
 import type { MemberImportListItem } from '../types';
 import { ImportStatusBadge } from './import-status-badge';
-import { MembersPagination } from './members-pagination';
 import { XlsxBadge } from './xlsx-badge';
 
 type ImportListProps = {
@@ -234,7 +234,7 @@ function HistoryResults({ query, isWeb, onPageChange }: HistoryResultsProps) {
       ) : (
         <ImportCards imports={imports} />
       )}
-      <MembersPagination
+      <ListPagination
         page={meta.current_page}
         lastPage={meta.last_page}
         onPageChange={onPageChange}

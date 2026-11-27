@@ -8,6 +8,7 @@ export { MemberCreatePage } from './pages/member-create-page';
 export { MemberDetailPage } from './pages/member-detail-page';
 export { MemberEditPage } from './pages/member-edit-page';
 export { MembersListPage } from './pages/members-list-page';
+export { RolesPage } from './pages/roles-page';
 export type {
   MemberListItem,
   MembersMeta,

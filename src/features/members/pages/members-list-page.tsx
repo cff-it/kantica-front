@@ -3,6 +3,7 @@ import { PageHeader } from '@/components/common/page-header';
 import { AddMemberLink } from '../components/add-member-link';
 import { ExportMembersDialog } from '../components/export-members-dialog';
 import { ImportMembersLink } from '../components/import-members-link';
+import { MemberRolesLink } from '../components/member-roles-link';
 import { MembersResults } from '../components/members-results';
 import { MembersSearchField } from '../components/members-search-field';
 import { VoiceFilter } from '../components/voice-filter';
@@ -31,6 +32,7 @@ export function MembersListPage() {
               count={getExportCount(meta, filters.voice)}
               voice={filters.voice}
             />
+            <MemberRolesLink className="col-span-2 sm:col-span-1" />
           </div>
         }
       />

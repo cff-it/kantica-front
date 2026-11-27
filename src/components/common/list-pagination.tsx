@@ -2,7 +2,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 
-type MembersPaginationProps = {
+type ListPaginationProps = {
   page: number;
   lastPage: number;
   onPageChange: (page: number) => void;
@@ -10,14 +10,14 @@ type MembersPaginationProps = {
 
 const BUTTON = 'h-12 gap-1 rounded-xl px-4 text-base font-semibold';
 
-// Pages précédente et suivante. Le back pagine par 20 (`PER_PAGE`) ; les
+// Pages précédente et suivante. Le back pagine par 20 (`PER_PAGE`, listes des membres et des rôles) ; les
 // maquettes n'ont qu'une page, la pagination n'y figure donc pas. Masquée
 // quand tout tient sur une page.
-export function MembersPagination({
+export function ListPagination({
   page,
   lastPage,
   onPageChange,
-}: MembersPaginationProps) {
+}: ListPaginationProps) {
   if (lastPage <= 1) {
     return null;
   }

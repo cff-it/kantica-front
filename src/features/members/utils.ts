@@ -1,9 +1,10 @@
 import { isAxiosError } from 'axios';
 
+import { getValidationMessage } from '@/lib/form-errors';
 import { findVoice } from '@/lib/voices';
 import type { User, Voice } from '@/types';
 
-import type { MembersMeta } from './types';
+import type { MembersMeta, RoleCounts } from './types';
 
 // Sous-titre de la page : « 9 choristes recensés ».
 export function getRegisteredLabel(count: number): string {
@@ -59,31 +60,6 @@ export function isNotFoundError(error: unknown): boolean {
   return isAxiosError(error) && error.response?.status === 404;
 }
 
-type LaravelValidationError = {
-  message?: string;
-  errors?: Record<string, string[]>;
-};
-
-// Message d'une 422 de Laravel pour un champ (à défaut, le message général),
-// `null` pour toute autre erreur. Sert aux actions sans formulaire RHF, où
-// `applyServerErrors` n'a pas de champ où poser l'erreur : un nouvel essai
-// échouerait de la même façon, il faut donc en donner la raison.
-export function getValidationMessage(
-  error: unknown,
-  field: string,
-): string | null {
-  if (
-    !isAxiosError<LaravelValidationError>(error) ||
-    error.response?.status !== 422
-  ) {
-    return null;
-  }
-
-  const data = error.response.data;
-
-  return data?.errors?.[field]?.[0] ?? data?.message ?? null;
-}
-
 // Le back répond 403 quand le rôle ne suffit pas, ou (rapport d'import) quand
 // l'import a été lancé par quelqu'un d'autre qu'un admin.
 export function isForbiddenError(error: unknown): boolean {
@@ -99,4 +75,45 @@ export function getMemberName(member: User): {
     first_name: member.profile?.first_name ?? null,
     last_name: member.profile?.last_name ?? member.last_name,
   };
+}
+
+// Sous-titre de « Gestion des rôles » : « 1 admin · 1 secrétaire · 5 membres ».
+export function getRoleCountsLabel(counts: RoleCounts): string {
+  const plural = (count: number, word: string) =>
+    `${count} ${word}${count > 1 ? 's' : ''}`;
+
+  return [
+    plural(counts.admin, 'admin'),
+    plural(counts.secretaire, 'secrétaire'),
+    plural(counts.membre, 'membre'),
+  ].join(' · ');
+}
+
+// Prénom affiché dans « Rôle de {prénom} » : le premier prénom, sinon le nom.
+export function getCallName(user: {
+  first_name: string | null;
+  last_name: string;
+}): string {
+  return user.first_name?.split(' ')[0] || user.last_name;
+}
+
+// Message d'un changement de rôle refusé : la raison d'une 422 (dernier admin,
+// compte administrateur originel), car un nouvel essai échouerait pareil ; un
+// message dédié pour un 403 ; sinon, inviter à réessayer.
+export function getRoleErrorMessage(error: unknown): string {
+  return (
+    getValidationMessage(error, 'role') ??
+    (isForbiddenError(error)
+      ? 'Seul un admin peut changer les rôles.'
+      : 'Impossible de changer le rôle. Réessayez.')
+  );
+}
+
+// Le membre a une fiche de recensement enregistrée. `profile.completed` ne veut
+// pas dire « fiche complète » mais « fiche enregistrée » (MemberProfileResource
+// du back : `profile !== null`) : c'est la règle de `PUT /members/{id}/voice`,
+// qui répond 422 sans fiche. `member.profile` lui-même est toujours présent dans
+// la réponse de la fiche, il ne suffit donc pas.
+export function hasMemberRecord(member: User): boolean {
+  return member.profile?.completed === true;
 }

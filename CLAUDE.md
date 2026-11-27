@@ -46,7 +46,8 @@ src/
 │   │   ├── schemas.ts        # Schémas Zod
 │   │   ├── types.ts          # Types de la feature
 │   │   └── index.ts          # API publique de la feature
-│   ├── members/              # Lot 1 : liste, fiche, export, import Excel
+│   ├── members/              # Lot 1 : liste, fiche, export, import Excel ; « Gestion des rôles » (KAN-63)
+│   ├── profile/              # « Mon profil » (identité, réglages, déconnexion)
 │   ├── songs/                # Répertoire des cantiques (lot ultérieur)
 │   ├── masses/               # Messes + PPTX (lot ultérieur)
 │   └── attendance/           # Présences + classements (lot ultérieur)
@@ -62,7 +63,10 @@ src/
 │                             # « (facultatif) »), FormTextarea, ChoiceChips (choix multiple en pastilles),
 │                             # DateField (champ de date en lecture seule qui ouvre le sélecteur), DatePickerDialog (sélecteur
 │                             # à précision : année, mois ou jour), PhoneField (téléphone : drapeau, pays et numéro
-│                             # national, valeur en E.164), PhoneListField (plusieurs numéros, un par ligne)
+│                             # national, valeur en E.164), PhoneListField (plusieurs numéros, un par ligne),
+│                             # InitialsAvatar (pastille d'initiales), ListPagination (pages précédente et
+│                             # suivante des listes), RoleBadge (badge du rôle), ThemeSwitch (interrupteur
+│                             # « Mode sombre » du Profil)
 │
 ├── lib/
 │   ├── api-client.ts         # Instance Axios unique (jeton Bearer, intercepteur 401)
@@ -70,10 +74,12 @@ src/
 │   ├── download-file.ts      # downloadBlob() et nom de fichier de Content-Disposition (exports)
 │   ├── clipboard.ts          # copyText() : copie dans le presse-papiers, avec repli
 │   ├── query-client.ts       # Configuration TanStack Query
-│   ├── form-errors.ts        # Mapping des erreurs 422 Laravel vers React Hook Form
+│   ├── form-errors.ts        # Mapping des erreurs 422 Laravel vers React Hook Form ; getValidationMessage()
+│                             # (message d'une 422 pour une action sans formulaire)
 │   ├── page-title.ts         # APP_NAME et format du titre de l'onglet
 │   ├── paths.ts              # Chemins des écrans et destination d'un compte « en attente »
-│   ├── roles.ts              # hasAnyRole() et getRoleLabel() : guards, navigation, carte de l'utilisateur
+│   ├── roles.ts              # hasAnyRole(), getHighestRole(), getRoleLabel(), ROLE_OPTIONS (libellés et
+│                             # couleurs des badges) : guards, navigation, carte de l'utilisateur, rôles
 │   ├── names.ts              # getFullName(), getInitials() : prénom, nom et avatars
 │   ├── voices.ts             # Les 4 voix : libellés et classes de couleur
 │   ├── dates.ts              # Dates de la fiche : lecture de la saisie (jj/mm/aaaa, mm/aaaa, aaaa) et écriture du choix du sélecteur
@@ -309,8 +315,7 @@ chemin n'est écrit en dur ailleurs.
   formulaire dont l'échec doit s'afficher tout de suite (`useRegister` ne l'a pas encore).
 - `/forgot-password` : route réservée (`<ComingSoon />`). Le lien figure sur la maquette de connexion, mais le
   back n'a aucune route de réinitialisation de mot de passe et aucune maquette de l'écran n'existe.
-- `/profile` : en attendant l'écran Profil, la page affiche `<ComingSoon />` et `LogoutButton` (le bouton
-  « Se déconnecter » de la maquette). Retirer le bouton de `app/router.tsx` quand l'écran sera construit.
+- `/profile` : écran « Mon profil » (voir « Profil »), avec `LogoutButton` (« Se déconnecter »).
 - Un compte actif dont l'email n'est pas vérifié reçoit un 403 `EMAIL_NOT_VERIFIED` sur les routes
   protégées ; ce cas n'est pas encore traité côté front.
 - Le back impose au mot de passe 8 caractères, majuscule, minuscule, chiffre et symbole ; la maquette
@@ -402,14 +407,17 @@ héritent de la charte sans retouche.
 - Les tokens `secondary`, `accent`, `muted`, `border`, `input`, ainsi que le texte clair du mode sombre,
   sont des teintes dérivées : la charte ne les fournit pas.
 - Thème géré par `next-themes` : préférence du système par défaut, choix mémorisé sous la clé `kantica-theme`.
-  `components/common/theme-toggle.tsx` bascule clair et sombre ; il est en haut à droite de `AuthLayout` et
-  `AppLayout`. La maquette place ce réglage (« Mode sombre ») dans l'écran Profil : à son implémentation,
-  y déplacer le bouton et le retirer des layouts.
+  `components/common/theme-toggle.tsx` bascule clair et sombre : en haut à droite de `AuthLayout`, et dans la
+  languette de la barre latérale web. Sous `lg`, l'écran connecté n'a plus de bouton flottant : le réglage est
+  l'interrupteur « Mode sombre » du Profil (`ThemeSwitch`, maquette 06-Profil).
 - Titres (`h1` à `h3`) en Cormorant Garamond 600 (`font-heading`), interface en Source Sans 3 (`font-sans`).
   Les polices sont importées dans `src/main.tsx`.
 - Badges de voix (Soprano, Alto, Ténor, Basse), `success` et `warning` : tokens codés dans `src/index.css`,
   valeurs du mode clair relevées sur les maquettes du lot 1, valeurs du mode sombre dérivées. Les classes
   de chaque voix sont dans `lib/voices.ts`, le rendu dans `components/common/voice-badge.tsx`.
+- Badges de rôle (`role-admin`, `role-secretary`, `role-member` et leurs `-foreground`) : Admin bleu nuit plein
+  `#1D3566`, Secrétaire `#E4ECFA` / `#234A8F`, Membre `#F2F3F5` / `#3D4452`, relevés sur les maquettes 06 ;
+  mode sombre dérivé. Classes dans `ROLE_OPTIONS` (`lib/roles.ts`), rendu dans `components/common/role-badge.tsx`.
 - Tokens de l'import Excel (`success-soft`, `failure`, `excel`) : valeurs du mode clair relevées sur les maquettes
   `08` et `09` du lot 1, mode sombre dérivé. `failure` est le rouge foncé des imports en échec, distinct du rouge CFF
   (`destructive`) ; `excel` est le vert de la pastille XLSX. Les tuiles bleues et ambre réutilisent `secondary` et
@@ -427,8 +435,8 @@ La source de vérité est `app/layouts/nav-items.ts`.
 | `membre` | Répertoire, Messes, Classements, Profil |
 | `secretaire`, `admin` | Répertoire, Messes, Classements, Membres, Profil |
 
-Événements et Paiements sont rangés dans Profil en attendant leurs écrans. Les routes des lots ultérieurs
-affichent `<ComingSoon />` : ne pas y inventer d'interface.
+Événements et Paiements sont rangés dans Profil (« Vie de la chorale », badge « Bientôt ») en attendant leurs
+écrans. Les routes des lots ultérieurs affichent `<ComingSoon />` : ne pas y inventer d'interface.
 
 **Web (dès `lg`)** : la barre d'onglets cède la place à une barre latérale à gauche
 (`app/layouts/app-sidebar.tsx`, maquettes `01-Lot1-Recensement/web`) : marque en haut, mêmes entrées sauf
@@ -526,10 +534,11 @@ Routes `/members/:id` (`paths.member`, `MemberDetailPage`) et `/members/:id/edit
   « A2 ») tant que le groupe ne change pas et l'efface sinon. Même groupe : la feuille se ferme sans requête.
   Succès : toast « Voix modifiée. », `memberKeys.all` et `authKeys.me()` invalidés (fiche, liste, effectifs par
   voix, carte de la barre latérale). 422 (membre sans fiche, voix refusée) : toast avec la raison du back
-  (`getValidationMessage` de `utils.ts`, message du champ `voice` ou message général), car un nouvel essai
-  échouerait pareil ; 403 : toast dédié ; réseau et 5xx : « Impossible de modifier la voix. Réessayez. ».
-  `profile.completed` veut dire « fiche enregistrée » (`profile !== null` côté back), pas « fiche complète » :
-  c'est la règle exacte de la route.
+  (`getValidationMessage` de `lib/form-errors.ts` : message du champ `voice`, sinon le premier message de la
+  réponse, jamais le `message` général de Laravel qui peut finir en anglais), car un nouvel essai échouerait
+  pareil ; 403 : toast dédié ; réseau et 5xx : « Impossible de modifier la voix. Réessayez. ».
+  Le lien n'apparaît que si `hasMemberRecord(member)` (`utils.ts`) : `profile.completed` veut dire « fiche
+  enregistrée » (`profile !== null` côté back), pas « fiche complète », c'est la règle exacte de la route.
   **Vérifié contre le vrai back** (branches `feature/kan-34-assign-voice` et `feature/kan-64-assign-voice`, compte
   admin) à 1440 px en clair et à 375 px en sombre : fiche incomplète (Alto vers Ténor puis Ténor vers Alto, voix
   précise A2 effacée, téléphone conservé en base), badge et effectifs de la liste à jour, lien masqué pour un
@@ -767,6 +776,59 @@ et `09-Import-membres-verification`. Entrée : bouton « Importer (Excel) » (`I
 
 ---
 
+## Profil
+
+Route `/profile` (`paths.profile`, `ProfilePage` de `features/profile`), maquettes
+`06-Administration-et-navigation/{mobile,web}/03-Profil`.
+
+- **Carte d'identité** (`ProfileIdentityCard`) : initiales, nom (fiche, sinon compte), badges de voix et de rôle ;
+  dès `lg`, email et téléphones à droite (« email · +261 … »).
+- **Sections** (`ProfileSection`, titre au-dessus de la carte sous `lg`, dans la carte dès `lg` ; trois colonnes
+  dès `lg`) : Présence (« Mon historique de présence », « Saisir les présences ») et Vie de la chorale
+  (« Événements », « Paiements ») sont des lignes « Bientôt » sans lien (`ProfileSoonRow`) : leurs écrans
+  n'existent pas. Qui verra « Saisir les présences » reste à définir avec le lot 4. Réglages : « Mode sombre »
+  (`ThemeSwitch`, `role="switch"`). **« Gestion des rôles » n'est pas dans le Profil** malgré la maquette : c'est
+  une fonction d'admin, rangée dans Membres (décision du 26 novembre 2026).
+- **Se déconnecter** : en haut à droite dès `lg`, pleine largeur en bas sous `lg` (deux montages, un seul visible).
+- Écarts avec les maquettes : pas de flèche de retour sur mobile (Profil est un onglet, faute d'écran Accueil) ;
+  pas de lien « Modifier ma fiche » (absent de la maquette, voir KAN-59).
+
+## Gestion des rôles
+
+Route `/members/roles` (`paths.memberRoles`, `RolesPage` de `features/members`), sous `RequireRole` (`admin`) ; le
+segment fixe `roles` passe avant `/members/:id`. Maquettes `06-Administration-et-navigation/{mobile,web}/01-Gestion-roles`.
+Entrée : bouton « Gestion des rôles » (`MemberRolesLink`) dans l'en-tête de la liste des membres, à côté
+d'« Exporter », **affiché pour l'admin seulement** (emplacement non maquetté : la maquette le met dans Profil >
+Réglages). Retour : « Membres ». Le code est dans `features/members` (API `getUsers`, `assignUserRole`, clés
+`userRoleKeys`) pour que la fiche membre s'en serve sans dépendance entre features.
+
+- **Back** (KAN-35) : `GET /api/users?search=&page=` (admin, 20 par page, recherche par nom, prénom ou email
+  sans accents ; `meta.role_counts` hors recherche ; le compte administrateur originel n'y figure pas) et
+  `PUT /api/users/{id}/role` avec `{ role }` (un seul rôle ; 422 sur `role` pour le dernier admin et pour le
+  compte originel). Types calqués sur `UserRoleResource` (`UserRoleItem`, `role` null pour un compte sans rôle).
+- **Deux mises en page**, une seule montée (`useMediaQuery`) : tableau dès `lg` (Utilisateur, Email, Rôle ; le
+  rôle se choisit dans la ligne, contrôle segmenté) ; lignes sous `lg` avec badge du rôle, un appui déplie
+  « Rôle de {prénom} » et trois boutons (une ligne dépliée à la fois). `RolePicker` : groupe nommé, boutons
+  `aria-pressed` ; tous les choix sont désactivés tant qu'un changement est en cours d'envoi. Badges de rôle et
+  « Bientôt » en 16 px (`text-base`).
+- **Compteur** « 1 admin · 2 secrétaires · 10 membres » (`getRoleCountsLabel`) et recherche « Nom ou email »
+  retardée (`useUsersFilters`, page remise à 1 à chaque recherche). Pagination `ListPagination`.
+- **Changement de rôle** (`useRoleChange`) : toast « {Nom} : Secrétaire. » ; erreurs par `getRoleErrorMessage`
+  (`utils.ts`) : 422 avec la raison du back (`getValidationMessage`), 403 « Seul un admin peut changer les rôles. ».
+  `useAssignUserRole` invalide la liste des rôles, `memberKeys.all` (ligne « Rôle » de la fiche) et `me` : un admin
+  qui se retire le rôle perd l'accès (le guard le renvoie à l'accueil).
+- **Ligne « Rôle » de la fiche membre** (carte Identité, sous la voix) : le rôle (`roles` de `GET /api/members/{id}`)
+  est lu par la secrétaire et l'admin ; le lien « Changer » (`ChangeRoleDialog`, feuille « Attribuer le rôle » sur
+  le modèle de la voix, `RolePicker` en trois boutons) n'est monté que pour l'admin (`RoleGuard`).
+- **Vérifié contre le vrai back** (branches `feature/kan-35-manage-roles` et `feature/kan-63-manage-roles`, jeu
+  `MemberReferenceSeeder`) à 1440 px en clair et 375 px en sombre : Profil (admin et compte technique),
+  déconnexion web et mobile, liste et compteur, recherche sans accent, changement de rôle aller et retour (web et
+  mobile), refus réel du dernier admin (rôle Admin retiré puis rendu au compte technique en base), interrupteur
+  « Mode sombre ». Après le déplacement dans Membres : bouton visible pour l'admin (web et mobile), absent pour la
+  secrétaire, `/members/roles` la renvoie à l'accueil ; fiche membre : « Rôle : Admin » sans « Changer » pour la
+  secrétaire, changement aller et retour depuis la fiche pour l'admin ; plus de lien dans le Profil. **Non
+  vérifié** à l'écran : la pagination (13 comptes) et le 403.
+
 ## Docker
 
 Fichiers : `Dockerfile` (multi-étapes), `docker-compose.yml`, `nginx.conf`, `.dockerignore`.
@@ -879,3 +941,6 @@ npm run lint     # ESLint
      « Ajout d'un membre »)
    - [x] KAN-64 (Lot 2, US-10) : attribution de la voix par la route dédiée, même sur une fiche incomplète
      (voir « Fiche membre », « Attribution de la voix »)
+4. Lot 2
+   - [x] KAN-63 : écran Profil (maquette 06-Profil), « Gestion des rôles » dans Membres et ligne « Rôle » de la
+     fiche (voir « Profil », « Gestion des rôles »)

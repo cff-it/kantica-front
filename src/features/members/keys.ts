@@ -1,4 +1,4 @@
-import type { MembersQuery } from './types';
+import type { MembersQuery, UsersQuery } from './types';
 
 export const memberKeys = {
   all: ['members'] as const,
@@ -14,4 +14,10 @@ export const memberImportKeys = {
   lists: () => [...memberImportKeys.all, 'list'] as const,
   list: (page: number) => [...memberImportKeys.lists(), page] as const,
   detail: (id: number) => [...memberImportKeys.all, 'detail', id] as const,
+};
+
+// Gestion des rôles : liste des comptes et de leur rôle (`GET /api/users`).
+export const userRoleKeys = {
+  all: ['user-roles'] as const,
+  list: (params: UsersQuery) => [...userRoleKeys.all, 'list', params] as const,
 };

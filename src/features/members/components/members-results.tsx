@@ -1,11 +1,11 @@
 import type { UseQueryResult } from '@tanstack/react-query';
 
+import { ListPagination } from '@/components/common/list-pagination';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 import type { MembersPage } from '../types';
 import { MembersList } from './members-list';
-import { MembersPagination } from './members-pagination';
 
 type MembersResultsProps = {
   query: UseQueryResult<MembersPage>;
@@ -72,7 +72,7 @@ export function MembersResults({
       )}
     >
       <MembersList members={members} />
-      <MembersPagination
+      <ListPagination
         page={meta.current_page}
         lastPage={meta.last_page}
         onPageChange={onPageChange}
