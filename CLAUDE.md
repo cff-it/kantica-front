@@ -803,6 +803,19 @@ Aucune variable `VITE_*` : l'URL de l'API est relative (`/api`), donc identique 
 
 ---
 
+### Préprod Railway
+
+Le service `kantica-front` du projet Railway `kantica` (environnement `preprod`) se construit avec
+`Dockerfile.railway`, pas avec le `Dockerfile` racine, et suit la branche `develop`.
+
+- `nginx.railway.conf` reprend `nginx.conf` : **toute modification de l'un est à reporter dans l'autre**. Seul le
+  proxy de l'API diffère : le back est résolu à chaque requête (`resolver` + variable), car son adresse privée
+  change à chaque déploiement, et les en-têtes `X-Forwarded-Proto` / `X-Real-IP` reçus de Railway sont retransmis.
+- `API_UPSTREAM` pointe sur le réseau privé : `http://<domaine privé du back>:8080`.
+- Pas de montage de cache npm dans ce Dockerfile : Railway impose un identifiant de cache par service.
+
+Vérifié en local (image construite, SPA servie, connexion à travers le proxy, reprise après redémarrage du back).
+
 ## Commandes
 
 ```bash
