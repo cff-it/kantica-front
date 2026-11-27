@@ -809,7 +809,8 @@ Réglages). Retour : « Membres ». Le code est dans `features/members` (API `ge
 - **Deux mises en page**, une seule montée (`useMediaQuery`) : tableau dès `lg` (Utilisateur, Email, Rôle ; le
   rôle se choisit dans la ligne, contrôle segmenté) ; lignes sous `lg` avec badge du rôle, un appui déplie
   « Rôle de {prénom} » et trois boutons (une ligne dépliée à la fois). `RolePicker` : groupe nommé, boutons
-  `aria-pressed`, désactivés pendant l'envoi de leur ligne.
+  `aria-pressed` ; tous les choix sont désactivés tant qu'un changement est en cours d'envoi. Badges de rôle et
+  « Bientôt » en 16 px (`text-base`).
 - **Compteur** « 1 admin · 2 secrétaires · 10 membres » (`getRoleCountsLabel`) et recherche « Nom ou email »
   retardée (`useUsersFilters`, page remise à 1 à chaque recherche). Pagination `ListPagination`.
 - **Changement de rôle** (`useRoleChange`) : toast « {Nom} : Secrétaire. » ; erreurs par `getRoleErrorMessage`

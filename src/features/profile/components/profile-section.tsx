@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 
 import { cn } from '@/lib/utils';
 
@@ -11,7 +11,9 @@ type ProfileSectionProps = {
 // Réglages) : titre en capitales, puis des lignes séparées par un filet. Le
 // titre est au-dessus de la carte sous `lg`, dans la carte dès `lg`.
 export function ProfileSection({ title, children }: ProfileSectionProps) {
-  const id = `profile-section-${title}`;
+  // Identifiant unique sans espaces : `aria-labelledby` découpe sa valeur sur
+  // les espaces (« Vie de la chorale » ne doit pas servir d'identifiant).
+  const id = useId();
 
   return (
     <section aria-labelledby={id} className="space-y-3 lg:space-y-0">
@@ -47,7 +49,7 @@ export function ProfileSoonRow({
           <p className="text-muted-foreground">{description}</p>
         ) : null}
       </div>
-      <span className="shrink-0 rounded-lg bg-muted px-3 py-1 text-sm font-semibold text-muted-foreground">
+      <span className="shrink-0 rounded-lg bg-muted px-3 py-1 text-base font-semibold text-muted-foreground">
         Bientôt
       </span>
     </li>

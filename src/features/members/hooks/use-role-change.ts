@@ -10,7 +10,9 @@ import { useAssignUserRole } from './use-assign-user-role';
 
 // Changement de rôle depuis une ligne, avec ses messages. Un 422 (dernier
 // admin, compte administrateur originel) affiche la raison du back : un nouvel
-// essai échouerait pareil. `pendingId` : la ligne en cours d'envoi.
+// essai échouerait pareil. `pending` : un envoi est en cours ; tous les choix
+// de rôle sont alors désactivés (un clic sur une autre ligne ne serait pas pris
+// en compte).
 export function useRoleChange() {
   const assign = useAssignUserRole();
 
@@ -36,6 +38,6 @@ export function useRoleChange() {
 
   return {
     change,
-    pendingId: assign.isPending ? assign.variables?.id : undefined,
+    pending: assign.isPending,
   };
 }

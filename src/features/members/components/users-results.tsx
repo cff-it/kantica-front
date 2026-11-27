@@ -73,7 +73,7 @@ export function UsersResults({
       <UsersRolesList
         users={users}
         onChange={roleChange.change}
-        pendingId={roleChange.pendingId}
+        pending={roleChange.pending}
       />
       <ListPagination
         page={meta.current_page}

@@ -14,14 +14,15 @@ import { RolePicker } from './role-picker';
 type UsersRolesListProps = {
   users: UserRoleItem[];
   onChange: (user: UserRoleItem, role: Role) => void;
-  // Compte dont le changement de rôle est en cours d'envoi.
-  pendingId?: number;
+  // Un changement de rôle est en cours d'envoi : tous les choix sont
+  // désactivés jusqu'à la réponse.
+  pending?: boolean;
 };
 
 // Mise en page mobile (sous `lg`) : une ligne par compte, avec son badge de
 // rôle. Toucher une ligne la déplie : « Rôle de {prénom} » et les trois
 // boutons. Une seule ligne dépliée à la fois.
-function UsersRows({ users, onChange, pendingId }: UsersRolesListProps) {
+function UsersRows({ users, onChange, pending }: UsersRolesListProps) {
   const [openId, setOpenId] = useState<number | null>(null);
 
   return (
@@ -49,7 +50,7 @@ function UsersRows({ users, onChange, pendingId }: UsersRolesListProps) {
                   {user.mail}
                 </span>
               </span>
-              <RoleBadge role={user.role} className="px-4 text-base" />
+              <RoleBadge role={user.role} className="px-4" />
             </button>
             {open ? (
               <div id={panelId} className="space-y-3 px-4 pb-5">
@@ -59,7 +60,7 @@ function UsersRows({ users, onChange, pendingId }: UsersRolesListProps) {
                   label={`Rôle de ${getFullName(user)}`}
                   value={user.role}
                   onChange={(role) => onChange(user, role)}
-                  disabled={pendingId === user.id}
+                  disabled={pending}
                 />
               </div>
             ) : null}
@@ -72,7 +73,7 @@ function UsersRows({ users, onChange, pendingId }: UsersRolesListProps) {
 
 // Mise en page web (dès `lg`, maquette web 01-Gestion-roles) : colonnes
 // Utilisateur, Email et Rôle ; le rôle se choisit directement dans la ligne.
-function UsersTable({ users, onChange, pendingId }: UsersRolesListProps) {
+function UsersTable({ users, onChange, pending }: UsersRolesListProps) {
   return (
     <div className="overflow-x-auto rounded-2xl border bg-card">
       <table className="w-full text-left text-base">
@@ -105,7 +106,7 @@ function UsersTable({ users, onChange, pendingId }: UsersRolesListProps) {
                   label={`Rôle de ${getFullName(user)}`}
                   value={user.role}
                   onChange={(role) => onChange(user, role)}
-                  disabled={pendingId === user.id}
+                  disabled={pending}
                 />
               </td>
             </tr>
