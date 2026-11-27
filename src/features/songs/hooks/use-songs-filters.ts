@@ -22,6 +22,10 @@ export function useSongsFilters() {
     setPage(1);
   }
 
+  // Dans le rendu où la recherche vient de changer, `page` vaut encore
+  // l'ancienne page : React ne rejoue le composant qu'après la fin de ce rendu,
+  // et `useSongs` est appelé entre-temps avec cette requête. Demander déjà la
+  // page 1 évite d'y créer une entrée de cache pour l'ancienne page.
   const query: SongsQuery = {
     search: debouncedSearch || undefined,
     page: pageSearch === debouncedSearch ? page : 1,

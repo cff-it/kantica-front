@@ -837,7 +837,8 @@ Route `/songs` (`paths.songs`, `SongsListPage` de `features/songs`) : premier on
 pour tous les rôles. Maquettes `03-Repertoire-et-voix/{mobile,web}/01-Repertoire`, ticket KAN-18 (US-04).
 
 - **Back** (KAN-18) : `GET /api/songs?search=&page=`, 20 cantiques par page triés par titre (sans casse ni accents),
-  recherche dans le titre et l'auteur. Lignes au format de `SongResource` (type `Song`, sans les sections) ;
+  recherche dans le titre et l'auteur. Lignes au format de `SongListItemResource` (type `SongListItem` : `id`,
+  `title`, `author`, `reference`, ce que la liste affiche ; le cantique complet sera lu par la fiche) ;
   `meta.songs_count` (« 13 cantiques ») porte sur tout le répertoire, `meta.total` suit la recherche.
 - **En-tête** : « Répertoire », « N cantiques », et le bouton « + Ajouter » sous `lg`, « + Ajouter un cantique » dès `lg`
   (un seul lien, nom accessible « Ajouter un cantique » : la fin du libellé est en `max-lg:sr-only`). Bouton **réservé à

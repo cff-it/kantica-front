@@ -5,13 +5,13 @@ import { LG_MEDIA_QUERY, useMediaQuery } from '@/hooks/use-media-query';
 import { getSongPath } from '@/lib/paths';
 import { cn } from '@/lib/utils';
 
-import type { Song } from '../types';
+import type { SongListItem } from '../types';
 
 // Valeur affichée quand l'auteur ou la référence ne sont pas renseignés.
 const EMPTY_VALUE = '-';
 
 type SongsListProps = {
-  songs: Song[];
+  songs: SongListItem[];
 };
 
 // Chevron de fin de ligne (maquettes mobile et web) : décoratif, le lien porte
