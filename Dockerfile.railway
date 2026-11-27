@@ -1,0 +1,28 @@
+# syntax=docker/dockerfile:1
+
+# Image de déploiement Railway (préprod). Le `Dockerfile` racine reste celui du développement local et du
+# docker-compose : celui-ci s'en distingue par l'absence de montage de cache (Railway impose un identifiant par
+# service) et par un gabarit nginx qui résout le back à chaque requête (voir nginx.railway.conf).
+ARG NODE_VERSION=24-alpine
+ARG NGINX_VERSION=1-alpine
+
+FROM node:${NODE_VERSION} AS build
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY . .
+RUN npm run build
+
+FROM nginxinc/nginx-unprivileged:${NGINX_VERSION}
+
+COPY nginx.railway.conf /etc/nginx/templates/default.conf.template
+COPY --from=build /app/dist /usr/share/nginx/html
+
+# Fait exporter NGINX_LOCAL_RESOLVERS (serveurs DNS du conteneur) par l'image nginx avant envsubst
+ENV NGINX_ENTRYPOINT_LOCAL_RESOLVERS=1
+# Back Laravel sur le réseau privé de Railway, à définir sur le service (ex. http://kantica-back.railway.internal:8080)
+ENV API_UPSTREAM=http://kantica-back.railway.internal:8080
+
+EXPOSE 8080
