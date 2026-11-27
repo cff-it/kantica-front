@@ -1,9 +1,9 @@
+import { InitialsAvatar } from '@/components/common/initials-avatar';
 import { VoiceBadge } from '@/components/common/voice-badge';
 import { getFullName } from '@/lib/names';
 import type { User } from '@/types';
 
 import { getMemberName } from '../utils';
-import { MemberAvatar } from './member-avatar';
 import { MemberContactsCard } from './member-contacts-card';
 import { MemberDetailHeader } from './member-detail-header';
 import { MemberIdentityCard } from './member-identity-card';
@@ -32,8 +32,8 @@ export function MemberDetail({ member }: MemberDetailProps) {
     <div className="mx-auto max-w-xl lg:mx-0 lg:max-w-none">
       <MemberDetailHeader memberId={member.id} fullName={fullName} />
       <div className="mt-6 flex flex-col items-center gap-3 lg:mt-6 lg:flex-row lg:gap-5">
-        <MemberAvatar
-          member={name}
+        <InitialsAvatar
+          person={name}
           className="size-20 text-2xl lg:size-25 lg:text-3xl"
         />
         <h1 className="text-3xl lg:hidden">{fullName}</h1>

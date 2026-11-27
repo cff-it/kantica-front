@@ -61,6 +61,13 @@
   --failure-foreground: #9e1b1b;
   --excel: #1e6b45;
   --excel-foreground: #ffffff;
+  /* Badges de rôle (Gestion des rôles, Profil) : relevés sur les maquettes 06 */
+  --role-admin: #1d3566;
+  --role-admin-foreground: #ffffff;
+  --role-secretary: #e4ecfa;
+  --role-secretary-foreground: #234a8f;
+  --role-member: #f2f3f5;
+  --role-member-foreground: #3d4452;
   --voice-s: #fcefd3; /* Soprano */
   --voice-s-foreground: #85570a;
   --voice-a: #f7e1ec; /* Alto */
@@ -106,6 +113,12 @@
   --failure-foreground: #f0a39d;
   --excel: #1e6b45;
   --excel-foreground: #ffffff;
+  --role-admin: #7fa6ea;
+  --role-admin-foreground: #11141b;
+  --role-secretary: #232938;
+  --role-secretary-foreground: #7fa6ea;
+  --role-member: #232733;
+  --role-member-foreground: #c4c9d4;
   --voice-s: #3a2f14;
   --voice-s-foreground: #f0c36b;
   --voice-a: #3b2230;
@@ -152,6 +165,12 @@
   --color-failure-foreground: var(--failure-foreground);
   --color-excel: var(--excel);
   --color-excel-foreground: var(--excel-foreground);
+  --color-role-admin: var(--role-admin);
+  --color-role-admin-foreground: var(--role-admin-foreground);
+  --color-role-secretary: var(--role-secretary);
+  --color-role-secretary-foreground: var(--role-secretary-foreground);
+  --color-role-member: var(--role-member);
+  --color-role-member-foreground: var(--role-member-foreground);
   --color-voice-s: var(--voice-s);
   --color-voice-s-foreground: var(--voice-s-foreground);
   --color-voice-a: var(--voice-a);

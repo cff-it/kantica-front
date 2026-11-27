@@ -45,3 +45,26 @@ export function applyServerErrors<TFieldValues extends FieldValues>(
 
   return true;
 }
+
+// Message d'une 422 de Laravel pour un champ (à défaut, le premier message de
+// la réponse), `null` pour toute autre erreur : l'appelant affiche alors son
+// propre message. Pour les actions sans formulaire RHF, où `applyServerErrors`
+// n'a pas de champ où poser l'erreur : un nouvel essai échouerait de la même
+// façon, il faut donc en donner la raison. Le `message` général de Laravel
+// n'est pas repris : avec plusieurs erreurs, il finit en anglais (« (and 1 more
+// error) »).
+export function getValidationMessage(
+  error: unknown,
+  field: string,
+): string | null {
+  if (
+    !isAxiosError<LaravelValidationError>(error) ||
+    error.response?.status !== 422
+  ) {
+    return null;
+  }
+
+  const errors = error.response.data?.errors ?? {};
+
+  return errors[field]?.[0] ?? Object.values(errors)[0]?.[0] ?? null;
+}

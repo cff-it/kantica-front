@@ -1,4 +1,4 @@
-import type { Paginated, UserStatus, Voice } from '@/types';
+import type { Paginated, Role, UserStatus, Voice } from '@/types';
 
 // MemberListItemResource : une ligne de la liste des membres. `phone` et
 // `contact_mail` suivent le format de la fiche : `phone` vaut null sans fiche
@@ -210,3 +210,32 @@ export type MemberImportListItem = Omit<MemberImport, 'report'> & {
 };
 
 export type MemberImportsPage = Paginated<MemberImportListItem>;
+
+// ── Gestion des rôles (KAN-63) ──────────────────────────────────────────
+
+// UserRoleResource (kantica-back, KAN-35) : une ligne de « Gestion des rôles ».
+// `role` est null pour un ancien compte sans rôle.
+export type UserRoleItem = {
+  id: number;
+  mail: string;
+  last_name: string;
+  first_name: string | null;
+  status: UserStatus;
+  role: Role | null;
+};
+
+// Nombre de comptes par rôle, hors recherche (« 1 admin · 1 secrétaire · 5
+// membres »).
+export type RoleCounts = Record<Role, number>;
+
+export type UsersQuery = {
+  search?: string;
+  page?: number;
+};
+
+export type UsersPage = Paginated<UserRoleItem, { role_counts: RoleCounts }>;
+
+export type AssignUserRoleVariables = {
+  id: number;
+  role: Role;
+};

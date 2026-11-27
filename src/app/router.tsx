@@ -5,7 +5,6 @@ import {
   EditProfilePage,
   ForgotPasswordPage,
   LoginPage,
-  LogoutButton,
   PendingAccountPage,
   ProfileFormPage,
   RegisterPage,
@@ -19,7 +18,9 @@ import {
   MemberDetailPage,
   MemberEditPage,
   MembersListPage,
+  RolesPage,
 } from '@/features/members';
+import { ProfilePage } from '@/features/profile';
 import { paths } from '@/lib/paths';
 
 import {
@@ -122,6 +123,18 @@ export const router = createBrowserRouter([
                 handle: { title: 'Membres' },
               },
               {
+                // « Gestion des rôles » (KAN-8) : admin seulement, ouverte
+                // depuis la liste des membres. Avant `paths.member` (`:id`).
+                element: <RequireRole roles={['admin']} />,
+                children: [
+                  {
+                    path: paths.memberRoles,
+                    element: <RolesPage />,
+                    handle: { title: 'Gestion des rôles' },
+                  },
+                ],
+              },
+              {
                 // Import Excel : ce layout sans chemin garde le fichier choisi
                 // entre le choix et la vérification. Le rapport est hors du
                 // layout : en y arrivant, l'état du parcours est oublié.
@@ -162,20 +175,15 @@ export const router = createBrowserRouter([
             ],
           },
           {
-            // Écran Profil à venir : en attendant, seul le bouton de
-            // déconnexion de la maquette (le ticket l'attend dans Profil).
+            // « Mon profil » (maquettes 06-Profil) : identité, réglages et
+            // déconnexion ; présence, événements et paiements « Bientôt ».
             path: paths.profile,
-            element: (
-              <>
-                <ComingSoon title="Profil" />
-                <LogoutButton />
-              </>
-            ),
-            handle: { title: 'Profil' },
+            element: <ProfilePage />,
+            handle: { title: 'Mon profil' },
           },
           {
             // « Modifier ma fiche » d'un compte actif. Pas encore de lien
-            // d'entrée : l'écran Profil n'est pas construit (voir CLAUDE.md).
+            // d'entrée : la maquette Profil n'en a pas (voir CLAUDE.md).
             path: paths.profileEdit,
             element: <EditProfilePage />,
             handle: { title: 'Fiche de choriste' },
