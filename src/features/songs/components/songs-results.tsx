@@ -2,6 +2,7 @@ import type { UseQueryResult } from '@tanstack/react-query';
 
 import { ListPagination } from '@/components/common/list-pagination';
 import { Button } from '@/components/ui/button';
+import { isForbiddenError } from '@/lib/api-errors';
 import { cn } from '@/lib/utils';
 
 import type { SongsPage } from '../types';
@@ -31,20 +32,30 @@ export function SongsResults({
     );
   }
 
+  // Un refus (403 : compte sans rôle) ne se règle pas en réessayant : pas de
+  // bouton « Réessayer » dans ce cas.
   if (query.isError) {
+    const forbidden = isForbiddenError(query.error);
+
     return (
       <div
         role="alert"
         className="flex flex-col items-center gap-4 py-12 text-center"
       >
-        <p className="text-destructive">Impossible de charger le répertoire.</p>
-        <Button
-          variant="outline"
-          className="h-12 rounded-xl px-5 text-base font-semibold"
-          onClick={() => void query.refetch()}
-        >
-          Réessayer
-        </Button>
+        <p className="text-destructive">
+          {forbidden
+            ? "Votre compte n'a pas accès au répertoire."
+            : 'Impossible de charger le répertoire.'}
+        </p>
+        {forbidden ? null : (
+          <Button
+            variant="outline"
+            className="h-12 rounded-xl px-5 text-base font-semibold"
+            onClick={() => void query.refetch()}
+          >
+            Réessayer
+          </Button>
+        )}
       </div>
     );
   }

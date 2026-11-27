@@ -4,13 +4,13 @@ import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 
 import { FormField } from '@/components/common/form-field';
+import { isForbiddenError } from '@/lib/api-errors';
 import { applyServerErrors } from '@/lib/form-errors';
 import { getMemberPath, paths } from '@/lib/paths';
 
 import { useCreateMember } from '../hooks/use-create-member';
 import { getNewMemberDefaults, toCreateMemberInput } from '../record';
 import { createMemberSchema, type CreateMemberFormInput } from '../schemas';
-import { isForbiddenError } from '../utils';
 import { MemberFormHeader } from './member-form-header';
 import { MemberRecordFields } from './member-record-fields';
 

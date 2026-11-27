@@ -71,6 +71,7 @@ src/
 │
 ├── lib/
 │   ├── api-client.ts         # Instance Axios unique (jeton Bearer, intercepteur 401)
+│   ├── api-errors.ts         # isNotFoundError(), isForbiddenError() : 404 et 403 de l'API (membres, répertoire)
 │   ├── auth-token.ts         # Jeton Bearer : lecture, écriture, effacement (localStorage)
 │   ├── download-file.ts      # downloadBlob() et nom de fichier de Content-Disposition (exports)
 │   ├── clipboard.ts          # copyText() : copie dans le presse-papiers, avec repli
@@ -843,13 +844,22 @@ pour tous les rôles. Maquettes `03-Repertoire-et-voix/{mobile,web}/01-Repertoir
   l'admin** (`RoleGuard`, KAN-13) ; il mène à `/songs/new` (`paths.songNew`, sous `RequireRole` admin), un
   `<ComingSoon />` en attendant l'écran de KAN-13.
 - **Recherche** « Titre ou auteur » : `SearchField` de `components/common/` (aussi utilisé par les membres et la gestion
-  des rôles), retardée, retour en page 1 à chaque recherche (`useSongsFilters`, comme `useUsersFilters`).
+  des rôles), retardée. Chaque nouvelle recherche ramène à la page 1, même quand elle revient à une valeur déjà vue
+  (« a » en page 3, effacée, puis « a » de nouveau) : `useSongsFilters` garde la recherche pour laquelle la page a été
+  choisie et remet la page à 1 pendant le rendu quand elle change (motif React « ajuster un état quand une valeur
+  change », accepté par les règles des hooks), sans effet ni requête pour l'ancienne page. `useMembersFilters` et
+  `useUsersFilters` comparent encore la recherche à une clé et rendent l'ancienne page dans ce cas (relevé par la revue de
+  KAN-18, non corrigé là-bas).
 - **Deux mises en page**, une seule montée (`useMediaQuery`) : lignes sous `lg` (titre en Cormorant Garamond, auteur en
   dessous, chevron ; séparateurs d'un bord à l'autre de l'écran par `-mx-4`) ; tableau dès `lg` (Titre, Auteur, Réf.,
   chevron ; le lien du titre couvre la ligne). Un auteur ou une référence absents s'affichent « - » dans le tableau ;
-  sous `lg`, la ligne de l'auteur est omise. Une ligne ouvre `/songs/:id` (`getSongPath`), un `<ComingSoon />`
+  sous `lg`, la ligne de l'auteur est omise. Un titre trop long passe à la ligne, même sans espace (`wrap-anywhere`, qui
+  laisse aussi la colonne du tableau se resserrer). Une ligne ouvre `/songs/:id` (`getSongPath`), un `<ComingSoon />`
   « Fiche du cantique » en attendant KAN-25 (l'onglet Répertoire reste actif). Pagination `ListPagination`, états
-  chargement, erreur (« Réessayer ») et liste vide (message différent pendant une recherche).
+  chargement, liste vide (message différent pendant une recherche) et erreur : « Impossible de charger le répertoire. »
+  avec « Réessayer », ou, pour un 403 (compte sans rôle), « Votre compte n'a pas accès au répertoire. » sans bouton.
+- `useSongs` est en `networkMode: 'always'` : hors ligne, le mode par défaut met la requête en pause et la page d'accueil
+  resterait sur « Chargement du répertoire… » ; ici la requête échoue et l'erreur s'affiche avec « Réessayer ».
 - **Mesures relevées sur les PNG des maquettes** (largeur des textes, position des séparateurs) : titre de page de 36 px
   sur les deux maquettes, compteur de 16 px, titres des cantiques de 20 px, lignes de 70 px (mobile) et 53 px (web), bouton
   de 44 px aligné sur le bas du bloc titre. Le tableau web reprend les classes de celui des membres.
@@ -861,8 +871,11 @@ pour tous les rôles. Maquettes `03-Repertoire-et-voix/{mobile,web}/01-Repertoir
   390 px, en clair et en sombre : liste et compteur, recherche (sans accent, en majuscules, mots du titre et de l'auteur),
   liste vide, une seule requête par recherche, ligne vers la fiche, bouton « + Ajouter » pour l'admin et absent pour un
   membre (`/songs/new` le renvoie au répertoire), pagination (10 cantiques temporaires ajoutés puis supprimés). La
-  recherche des Membres et de la Gestion des rôles a été revérifiée après le passage à `SearchField`. **Non vérifié** à
-  l'écran : l'état d'erreur (403 d'un compte sans rôle, réseau coupé).
+  recherche des Membres et de la Gestion des rôles a été revérifiée après le passage à `SearchField`. Après la revue :
+  retour en page 1 quand une recherche revient (« zz » en page 2, effacée puis retapée), titre de 98 caractères sans
+  espace (trois lignes à 390 px, deux dans le tableau à 1440 px, sans défilement), vrai 403 d'un compte sans rôle (rôle
+  retiré puis rendu au compte `membre@scenarios.kantica.test`), « Membre introuvable » toujours affiché après le passage à
+  `lib/api-errors.ts`. **Non vérifié** à l'écran : le hors-ligne (`networkMode: 'always'`).
 
 ## Docker
 

@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react';
 
 import { Button } from '@/components/ui/button';
+import { isNotFoundError } from '@/lib/api-errors';
 import type { User } from '@/types';
 
 import { useMember } from '../hooks/use-member';
-import { isNotFoundError } from '../utils';
 import { MemberNotFound } from './member-not-found';
 
 type MemberLoaderProps = {

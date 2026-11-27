@@ -1,5 +1,6 @@
 import { PageHeader } from '@/components/common/page-header';
 import { Button } from '@/components/ui/button';
+import { isForbiddenError, isNotFoundError } from '@/lib/api-errors';
 import { formatShortDate, formatTime } from '@/lib/utils';
 
 import { useMemberImport } from '../hooks/use-member-import';
@@ -9,7 +10,6 @@ import {
   isImportRunning,
 } from '../imports';
 import type { MemberImport } from '../types';
-import { isForbiddenError, isNotFoundError } from '../utils';
 import { ImportIssuesSection } from './import-issues-section';
 import { ImportNotFound } from './import-not-found';
 import { ImportProgressCard } from './import-progress-card';

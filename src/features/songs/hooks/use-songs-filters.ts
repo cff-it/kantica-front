@@ -4,23 +4,34 @@ import { useDebounce } from '@/hooks/use-debounce';
 
 import type { SongsQuery } from '../types';
 
-// Recherche et page du répertoire, comme les listes des membres et des rôles :
-// la recherche est retardée, et une nouvelle recherche ramène à la première
-// page (sans effet ni requête en plus).
+// Recherche et page du répertoire : la recherche est retardée, et chaque
+// nouvelle recherche ramène à la première page, même quand elle revient à une
+// valeur déjà vue (« a » en page 3, effacée, puis « a » de nouveau).
 export function useSongsFilters() {
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search.trim());
-  const [pageState, setPageState] = useState({ key: debouncedSearch, page: 1 });
-  const page = pageState.key === debouncedSearch ? pageState.page : 1;
+  const [page, setPage] = useState(1);
+  // Recherche pour laquelle `page` a été choisie. Quand la recherche retardée
+  // change, la page revient à 1 pendant le rendu (motif React « ajuster un
+  // état quand une valeur change ») : ni effet, ni requête pour l'ancienne
+  // page.
+  const [pageSearch, setPageSearch] = useState(debouncedSearch);
 
-  const query: SongsQuery = { search: debouncedSearch || undefined, page };
+  if (pageSearch !== debouncedSearch) {
+    setPageSearch(debouncedSearch);
+    setPage(1);
+  }
+
+  const query: SongsQuery = {
+    search: debouncedSearch || undefined,
+    page: pageSearch === debouncedSearch ? page : 1,
+  };
 
   return {
     search,
     query,
     filtered: Boolean(query.search),
     setSearch,
-    setPage: (value: number) =>
-      setPageState({ key: debouncedSearch, page: value }),
+    setPage,
   };
 }

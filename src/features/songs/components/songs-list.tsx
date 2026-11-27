@@ -39,7 +39,7 @@ function SongsRows({ songs }: SongsListProps) {
             className="flex items-center gap-4 px-4 py-2.5 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset"
           >
             <div className="min-w-0 flex-1 space-y-0.5">
-              <p className="font-heading text-xl leading-tight font-semibold">
+              <p className="font-heading text-xl leading-tight font-semibold wrap-anywhere">
                 {song.title}
               </p>
               {song.author ? (
@@ -87,7 +87,7 @@ function SongsTable({ songs }: SongsListProps) {
               <td className="px-5 py-3">
                 <Link
                   to={getSongPath(song.id)}
-                  className="font-heading text-xl font-semibold outline-none after:absolute after:inset-0"
+                  className="font-heading text-xl font-semibold wrap-anywhere outline-none after:absolute after:inset-0"
                 >
                   {song.title}
                 </Link>

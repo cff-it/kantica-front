@@ -14,12 +14,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { isForbiddenError } from '@/lib/api-errors';
 import { getValidationMessage } from '@/lib/form-errors';
 import { toVoice } from '@/lib/voices';
 import type { User, Voice } from '@/types';
 
 import { useAssignMemberVoice } from '../hooks/use-assign-member-voice';
-import { isForbiddenError } from '../utils';
 
 type ChangeVoiceDialogProps = {
   member: User;
