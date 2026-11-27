@@ -9,6 +9,11 @@ export const paths = {
   registerProfile: '/register/profile',
   pendingAccount: '/pending-account',
   songs: '/songs',
+  // Ajout d'un cantique (KAN-13, admin) : le segment fixe `new` l'emporte sur
+  // `:id` de `song`.
+  songNew: '/songs/new',
+  // Fiche d'un cantique (KAN-25), ouverte depuis une ligne du répertoire.
+  song: '/songs/:id',
   masses: '/masses',
   rankings: '/rankings',
   members: '/members',
@@ -28,6 +33,11 @@ export const paths = {
   // Premier onglet de la navigation, page d'accueil après connexion.
   home: '/songs',
 } as const;
+
+// Chemin de la fiche d'un cantique (`paths.song` est le motif de la route).
+export function getSongPath(id: number): string {
+  return `${paths.songs}/${id}`;
+}
 
 // Chemin de la fiche d'un membre (`paths.member` est le motif de la route).
 export function getMemberPath(id: number): string {

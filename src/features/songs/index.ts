@@ -1,2 +1,1 @@
-// Répertoire des cantiques : lot ultérieur (voir CLAUDE.md).
-export {};
+export { SongsListPage } from './pages/songs-list-page';

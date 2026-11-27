@@ -1,10 +1,10 @@
 import { ChevronLeft } from 'lucide-react';
 import { Link } from 'react-router';
 
+import { SearchField } from '@/components/common/search-field';
 import { paths } from '@/lib/paths';
 
 import { UsersResults } from '../components/users-results';
-import { UsersSearchField } from '../components/users-search-field';
 import { useUsers } from '../hooks/use-users';
 import { useUsersFilters } from '../hooks/use-users-filters';
 import { getRoleCountsLabel } from '../utils';
@@ -40,7 +40,13 @@ export function RolesPage() {
         ) : null}
       </header>
       <div className="mb-6">
-        <UsersSearchField value={filters.search} onChange={filters.setSearch} />
+        <SearchField
+          value={filters.search}
+          onChange={filters.setSearch}
+          placeholder="Nom ou email"
+          label="Rechercher un nom ou un email"
+          className="lg:w-[28rem]"
+        />
       </div>
       <UsersResults
         query={users}

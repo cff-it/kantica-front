@@ -48,7 +48,7 @@ src/
 │   │   └── index.ts          # API publique de la feature
 │   ├── members/              # Lot 1 : liste, fiche, export, import Excel ; « Gestion des rôles » (KAN-63)
 │   ├── profile/              # « Mon profil » (identité, réglages, déconnexion)
-│   ├── songs/                # Répertoire des cantiques (lot ultérieur)
+│   ├── songs/                # Répertoire : liste et recherche des cantiques (KAN-18)
 │   ├── masses/               # Messes + PPTX (lot ultérieur)
 │   └── attendance/           # Présences + classements (lot ultérieur)
 │
@@ -65,7 +65,8 @@ src/
 │                             # à précision : année, mois ou jour), PhoneField (téléphone : drapeau, pays et numéro
 │                             # national, valeur en E.164), PhoneListField (plusieurs numéros, un par ligne),
 │                             # InitialsAvatar (pastille d'initiales), ListPagination (pages précédente et
-│                             # suivante des listes), RoleBadge (badge du rôle), ThemeSwitch (interrupteur
+│                             # suivante des listes), SearchField (recherche des listes : membres, rôles,
+│                             # répertoire), RoleBadge (badge du rôle), ThemeSwitch (interrupteur
 │                             # « Mode sombre » du Profil)
 │
 ├── lib/
@@ -829,6 +830,40 @@ Réglages). Retour : « Membres ». Le code est dans `features/members` (API `ge
   secrétaire, changement aller et retour depuis la fiche pour l'admin ; plus de lien dans le Profil. **Non
   vérifié** à l'écran : la pagination (13 comptes) et le 403.
 
+## Répertoire
+
+Route `/songs` (`paths.songs`, `SongsListPage` de `features/songs`) : premier onglet et page d'accueil après la connexion,
+pour tous les rôles. Maquettes `03-Repertoire-et-voix/{mobile,web}/01-Repertoire`, ticket KAN-18 (US-04).
+
+- **Back** (KAN-18) : `GET /api/songs?search=&page=`, 20 cantiques par page triés par titre (sans casse ni accents),
+  recherche dans le titre et l'auteur. Lignes au format de `SongResource` (type `Song`, sans les sections) ;
+  `meta.songs_count` (« 13 cantiques ») porte sur tout le répertoire, `meta.total` suit la recherche.
+- **En-tête** : « Répertoire », « N cantiques », et le bouton « + Ajouter » sous `lg`, « + Ajouter un cantique » dès `lg`
+  (un seul lien, nom accessible « Ajouter un cantique » : la fin du libellé est en `max-lg:sr-only`). Bouton **réservé à
+  l'admin** (`RoleGuard`, KAN-13) ; il mène à `/songs/new` (`paths.songNew`, sous `RequireRole` admin), un
+  `<ComingSoon />` en attendant l'écran de KAN-13.
+- **Recherche** « Titre ou auteur » : `SearchField` de `components/common/` (aussi utilisé par les membres et la gestion
+  des rôles), retardée, retour en page 1 à chaque recherche (`useSongsFilters`, comme `useUsersFilters`).
+- **Deux mises en page**, une seule montée (`useMediaQuery`) : lignes sous `lg` (titre en Cormorant Garamond, auteur en
+  dessous, chevron ; séparateurs d'un bord à l'autre de l'écran par `-mx-4`) ; tableau dès `lg` (Titre, Auteur, Réf.,
+  chevron ; le lien du titre couvre la ligne). Un auteur ou une référence absents s'affichent « - » dans le tableau ;
+  sous `lg`, la ligne de l'auteur est omise. Une ligne ouvre `/songs/:id` (`getSongPath`), un `<ComingSoon />`
+  « Fiche du cantique » en attendant KAN-25 (l'onglet Répertoire reste actif). Pagination `ListPagination`, états
+  chargement, erreur (« Réessayer ») et liste vide (message différent pendant une recherche).
+- **Mesures relevées sur les PNG des maquettes** (largeur des textes, position des séparateurs) : titre de page de 36 px
+  sur les deux maquettes, compteur de 16 px, titres des cantiques de 20 px, lignes de 70 px (mobile) et 53 px (web), bouton
+  de 44 px aligné sur le bas du bloc titre. Le tableau web reprend les classes de celui des membres.
+- **Écarts avec les maquettes** : pas encore de thème (pastilles de filtre « Tous, Avent, Noël… », pastille de couleur après
+  l'auteur, colonne Thème) : il arrive avec KAN-23, dont le modèle n'est pas tranché ; « Venez, divin Messie » passe avant
+  « Veni Creator Spiritus » (ordre alphabétique strict, la maquette les inverse). La recherche n'est pas gardée dans l'URL :
+  elle est perdue au retour de la fiche, comme pour la liste des membres.
+- **Vérifié contre le vrai back** (branches `feature/kan-18-repertoire`, base de dev, `SongReferenceSeeder`) à 1440 px et
+  390 px, en clair et en sombre : liste et compteur, recherche (sans accent, en majuscules, mots du titre et de l'auteur),
+  liste vide, une seule requête par recherche, ligne vers la fiche, bouton « + Ajouter » pour l'admin et absent pour un
+  membre (`/songs/new` le renvoie au répertoire), pagination (10 cantiques temporaires ajoutés puis supprimés). La
+  recherche des Membres et de la Gestion des rôles a été revérifiée après le passage à `SearchField`. **Non vérifié** à
+  l'écran : l'état d'erreur (403 d'un compte sans rôle, réseau coupé).
+
 ## Docker
 
 Fichiers : `Dockerfile` (multi-étapes), `docker-compose.yml`, `nginx.conf`, `.dockerignore`.
@@ -944,3 +979,7 @@ npm run lint     # ESLint
 4. Lot 2
    - [x] KAN-63 : écran Profil (maquette 06-Profil), « Gestion des rôles » dans Membres et ligne « Rôle » de la
      fiche (voir « Profil », « Gestion des rôles »)
+   - [x] KAN-18 : répertoire (liste, recherche « Titre ou auteur », pagination, « + Ajouter » pour l'admin ; voir
+     « Répertoire »)
+   - [ ] KAN-18 : pastilles de thème (filtres, couleur, colonne Thème), avec KAN-23
+   - [ ] KAN-25 : fiche du cantique (`/songs/:id`, « Bientôt » pour l'instant)
