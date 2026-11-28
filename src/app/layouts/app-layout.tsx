@@ -40,8 +40,9 @@ export function AppLayout() {
                 to={to}
                 className={({ isActive }) =>
                   cn(
-                    'relative flex min-h-14 flex-col items-center',
-                    'justify-center gap-1 px-2 text-sm font-semibold',
+                    'relative flex min-h-(--tabbar-item-height)',
+                    'flex-col items-center justify-center gap-1 px-2',
+                    'text-sm font-semibold',
                     'text-muted-foreground',
                     isActive && 'text-link',
                   )
