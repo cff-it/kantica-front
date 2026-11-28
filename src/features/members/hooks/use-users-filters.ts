@@ -5,22 +5,38 @@ import { useDebounce } from '@/hooks/use-debounce';
 import type { UsersQuery } from '../types';
 
 // Recherche et page de « Gestion des rôles », comme la liste des membres
-// (`useMembersFilters`) : la recherche est retardée, et une nouvelle
-// recherche ramène à la première page.
+// (`useMembersFilters`) : la recherche est retardée, et chaque nouvelle
+// recherche ramène à la première page, même quand elle revient à une valeur
+// déjà vue (« a » en page 3, effacée, puis « a » de nouveau).
 export function useUsersFilters() {
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search.trim());
-  const [pageState, setPageState] = useState({ key: debouncedSearch, page: 1 });
-  const page = pageState.key === debouncedSearch ? pageState.page : 1;
+  const [page, setPage] = useState(1);
+  // Recherche pour laquelle `page` a été choisie. Quand la recherche retardée
+  // change, la page revient à 1 pendant le rendu (motif React « ajuster un
+  // état quand une valeur change ») : ni effet, ni requête pour l'ancienne
+  // page.
+  const [pageSearch, setPageSearch] = useState(debouncedSearch);
 
-  const query: UsersQuery = { search: debouncedSearch || undefined, page };
+  if (pageSearch !== debouncedSearch) {
+    setPageSearch(debouncedSearch);
+    setPage(1);
+  }
+
+  // Dans le rendu où la recherche vient de changer, `page` vaut encore
+  // l'ancienne page : React ne rejoue le composant qu'après la fin de ce rendu,
+  // et `useUsers` est appelé entre-temps avec cette requête. Demander déjà la
+  // page 1 évite d'y créer une entrée de cache pour l'ancienne page.
+  const query: UsersQuery = {
+    search: debouncedSearch || undefined,
+    page: pageSearch === debouncedSearch ? page : 1,
+  };
 
   return {
     search,
     query,
     filtered: Boolean(query.search),
     setSearch,
-    setPage: (value: number) =>
-      setPageState({ key: debouncedSearch, page: value }),
+    setPage,
   };
 }
