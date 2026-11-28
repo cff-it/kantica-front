@@ -90,7 +90,8 @@ src/
 │   └── utils.ts              # cn(), formatage de dates et d'heures (formatShortDate, formatTime)
 │
 ├── assets/brand/             # Logo et filigranes (PNG transparents, voir Points d'attention)
-├── hooks/                    # Hooks génériques sans métier (useDebounce, useMediaQuery, useRouteTitle)
+├── hooks/                    # Hooks génériques sans métier (useDebounce, useMediaQuery, useRouteTitle,
+│                             # usePageInRange : retour à la dernière page d'une liste qui a rétréci)
 └── types/                    # Types partagés : User, Role, Voice, Paginated<T>
 ```
 
@@ -859,8 +860,17 @@ pour tous les rôles. Maquettes `03-Repertoire-et-voix/{mobile,web}/01-Repertoir
   (« a » en page 3, effacée, puis « a » de nouveau) : `useSongsFilters` garde la recherche pour laquelle la page a été
   choisie et remet la page à 1 pendant le rendu quand elle change (motif React « ajuster un état quand une valeur
   change », accepté par les règles des hooks), sans effet ni requête pour l'ancienne page. `useMembersFilters` et
-  `useUsersFilters` comparent encore la recherche à une clé et rendent l'ancienne page dans ce cas (relevé par la revue de
-  KAN-18, non corrigé là-bas).
+  `useUsersFilters` suivent le même motif.
+- **Page devenue trop grande** (relevé par la revue de KAN-18) : si des cantiques disparaissent pendant qu'on est en
+  page 3, le back répond `data: []` avec `current_page > last_page`. `usePageInRange` (`hooks/`, générique) ramène
+  alors la page à la dernière pendant le rendu de `SongsListPage`, et `SongsResults` affiche « Chargement du
+  répertoire… » le temps que cette page arrive (liste vide mais `meta.total > 0`), au lieu d'un faux « Aucun
+  cantique ». Les listes des membres et des rôles ne l'utilisent pas encore. Cas typique : des cantiques supprimés
+  pendant qu'on lit la page 1, puis « Suivant » vers une page 2 qui n'existe plus. La page 1 réaffichée vient du cache :
+  son compteur peut dater de 30 s au plus (`staleTime`), jusqu'à son prochain rechargement. **Vérifié contre le vrai
+  back** (28 cantiques dont 15 temporaires, 10 supprimés par l'API avec le compte admin, puis « Suivant ») à 1440 px
+  en clair et 390 px en sombre : retour en page 1, ni « Aucun cantique » ni écran bloqué. Le rechargement au retour du
+  réseau n'a pas pu être simulé dans le navigateur intégré.
 - **Deux mises en page**, une seule montée (`useMediaQuery`) : lignes sous `lg` (titre en Cormorant Garamond, auteur en
   dessous, chevron ; séparateurs d'un bord à l'autre de l'écran par `-mx-4`) ; tableau dès `lg` (Titre, Auteur, Réf.,
   chevron ; le lien du titre couvre la ligne). Un auteur ou une référence absents s'affichent « - » dans le tableau ;
@@ -873,7 +883,9 @@ pour tous les rôles. Maquettes `03-Repertoire-et-voix/{mobile,web}/01-Repertoir
   resterait sur « Chargement du répertoire… » ; ici la requête échoue et l'erreur s'affiche avec « Réessayer ».
 - **Mesures relevées sur les PNG des maquettes** (largeur des textes, position des séparateurs) : titre de page de 36 px
   sur les deux maquettes, compteur de 16 px, titres des cantiques de 20 px, lignes de 70 px (mobile) et 53 px (web), bouton
-  de 44 px aligné sur le bas du bloc titre. Le tableau web reprend les classes de celui des membres.
+  de 44 px aligné sur le bas du bloc titre. Le tableau web reprend les classes de celui des membres. En-têtes de
+  colonnes en `text-xs`, capitales espacées : la maquette web les dessine en capitales de 8,5 px de haut (17 px sur le
+  PNG @2x), soit du 12 à 13 px ; la règle des 16 px vise le texte courant, pas ces libellés.
 - **Écarts avec les maquettes** : pas encore de thème (pastilles de filtre « Tous, Avent, Noël… », pastille de couleur après
   l'auteur, colonne Thème) : il arrive avec KAN-23, dont le modèle n'est pas tranché ; « Venez, divin Messie » passe avant
   « Veni Creator Spiritus » (ordre alphabétique strict, la maquette les inverse). La recherche n'est pas gardée dans l'URL :

@@ -62,6 +62,17 @@ export function SongsResults({
 
   const { data: songs, meta } = query.data;
 
+  // Page devenue trop grande (des cantiques supprimés pendant qu'on était en
+  // page 3) : la page revient à la dernière (`usePageInRange`), le temps que
+  // cette page arrive. Sans ce cas, « Aucun cantique » s'afficherait à tort.
+  if (songs.length === 0 && meta.total > 0) {
+    return (
+      <p role="status" className="py-12 text-center text-muted-foreground">
+        Chargement du répertoire…
+      </p>
+    );
+  }
+
   if (songs.length === 0) {
     return (
       <p className="py-12 text-center text-muted-foreground">

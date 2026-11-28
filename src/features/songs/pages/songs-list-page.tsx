@@ -1,5 +1,6 @@
 import { RoleGuard } from '@/components/common/role-guard';
 import { SearchField } from '@/components/common/search-field';
+import { usePageInRange } from '@/hooks/use-page-in-range';
 
 import { AddSongLink } from '../components/add-song-link';
 import { SongsResults } from '../components/songs-results';
@@ -14,6 +15,7 @@ import { getSongsCountLabel } from '../utils';
 export function SongsListPage() {
   const filters = useSongsFilters();
   const songs = useSongs(filters.query);
+  usePageInRange(songs.data?.meta, filters.query.page ?? 1, filters.setPage);
   const count = songs.data?.meta.songs_count;
 
   return (
