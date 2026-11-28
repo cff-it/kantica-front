@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useBlocker } from 'react-router';
 
 // Bloque la navigation interne tant que `hasUnsavedChanges` est vrai : lien,
@@ -15,9 +15,33 @@ import { useBlocker } from 'react-router';
 // l'appel même de `navigate`), puis aussitôt réarmée. Si l'écran reste monté
 // (navigation sans effet), la saisie suivante reste donc protégée.
 //
-// Ne couvre pas la fermeture ou le rechargement de l'onglet du navigateur.
+// Fermer ou recharger l'onglet quitte l'application sans passer par le
+// routeur : un écouteur `beforeunload` (posé tant que la saisie n'est pas
+// enregistrée, retiré ensuite) fait alors demander confirmation par le
+// navigateur, avec son propre texte. Sur mobile, les navigateurs l'appellent
+// peu (iOS Safari l'ignore, et une page mise en veille puis supprimée par le
+// système ne reçoit aucun événement) : la saisie y reste fragile.
 export function useUnsavedChangesGuard(hasUnsavedChanges: boolean) {
   const isLeavingAllowed = useRef(false);
+
+  useEffect(() => {
+    if (!hasUnsavedChanges) {
+      return;
+    }
+
+    const confirmBeforeUnload = (event: BeforeUnloadEvent) => {
+      // Une sortie voulue (`leaveWithoutConfirmation`) ne demande rien.
+      if (!isLeavingAllowed.current) {
+        event.preventDefault();
+      }
+    };
+
+    window.addEventListener('beforeunload', confirmBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', confirmBeforeUnload);
+    };
+  }, [hasUnsavedChanges]);
 
   const blocker = useBlocker(
     ({ currentLocation, nextLocation }) =>

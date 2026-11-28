@@ -836,8 +836,13 @@ il reste le thème, voir « Écarts »).
   routeur l'évalue de façon synchrone dans `navigate`) puis **aussitôt réarmée**, pour qu'un écran resté monté reste
   protégé. **Redirection 401** (gestionnaire de `providers.tsx`) avec un formulaire modifié : elle aboutit sur
   `/login`, sans feuille ni blocage (le formulaire se démonte quand `me` passe à `null`, ce qui retire la garde).
-  **Ne couvre pas** la fermeture ou le rechargement de l'onglet (pas de `beforeunload`). À reprendre pour les autres
-  longs formulaires (fiche membre, ajout d'un membre).
+  **Fermeture et rechargement de l'onglet** : le même hook pose un écouteur `beforeunload` tant que le formulaire est
+  modifié (retiré au démontage et quand la saisie revient à sa valeur de départ). Le navigateur demande alors
+  confirmation avec son propre texte. Une navigation du routeur ne déclenche pas `beforeunload` : après un
+  enregistrement, le formulaire se démonte et l'écouteur disparaît. **Limite sur mobile** : iOS Safari l'ignore et une
+  page mise en veille puis supprimée par le système ne reçoit aucun événement, la saisie y reste fragile (il faudrait
+  un brouillon enregistré dans le navigateur). À reprendre pour les autres longs formulaires (fiche membre, ajout d'un
+  membre).
 - **Écarts avec les maquettes** : le thème liturgique n'est pas saisi (le back ne l'accepte pas, KAN-23) ; le titre de
   l'ajout est « Nouveau cantique » (libellé du ticket).
 - **Champ invisible** : `section_id` (et non `id`, réservé par `useFieldArray`) voyage avec la section sans être
@@ -883,7 +888,10 @@ il reste le thème, voir « Écarts »).
   rouvre le formulaire une fois le réseau revenu. Réponse sans `sections` (champ retiré par un script dans la page) :
   erreur et « Réessayer », pas de formulaire. Enregistrement après la garde réarmée (modification) : sortie directe vers
   la fiche, sans feuille. 401 avec un formulaire modifié (jeton rendu invalide dans le navigateur puis
-  « Enregistrer ») : arrivée sur `/login`, aucune feuille. **Non vérifié** : le geste « retour » du navigateur d'un
+  « Enregistrer ») : arrivée sur `/login`, aucune feuille. `beforeunload` (troisième revue) vérifié à 1440 px : la
+  boîte native s'ouvre au rechargement d'un formulaire modifié (annulée : la saisie reste ; acceptée : la page se
+  recharge), rien sur un formulaire intact ou revenu à sa valeur de départ, aucune boîte après un enregistrement
+  (arrivée sur `/songs`, écouteur retiré). **Non vérifié** : le geste « retour » du navigateur d'un
   téléphone (le routeur traite le même événement, `history.back()` n'a été essayé que sans saisie), et le réarmement
   d'une navigation sans effet (déduit du code, pas reproduit à l'écran). Le long libellé « Quitter sans enregistrer »
   tient sur une ligne jusqu'à 320 px (texte de 162 px dans un bouton de 272 px, 56 px de haut). Numéro de section :
