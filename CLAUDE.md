@@ -485,9 +485,15 @@ chargement du JS) est le nom seul.
 
 ## Liste des membres
 
-- `GET /api/members?search=&voice=&page=` (20 par page, `PER_PAGE` du back). `useMembersFilters` porte la
-  recherche (anti-rebond), le filtre de voix et la page ; la page revient à 1 quand la recherche ou la voix
-  change, sans effet ni requête en plus.
+- `GET /api/members?search=&voice=&page=` (20 par page, `PER_PAGE` du back ; au-delà de la page 100 000, le back
+  répond 422). `useMembersFilters` porte la recherche (anti-rebond), le filtre de voix et la page. Chaque changement
+  de recherche ou de voix ramène à la page 1, même quand il revient à des filtres déjà vus (« a » en page 3,
+  effacée, puis « a » de nouveau ; voix S en page 2, puis A, puis S) : le hook garde les filtres pour lesquels la
+  page a été choisie (clé `recherche|voix`) et remet la page à 1 pendant le rendu quand ils changent (motif React
+  « ajuster un état quand une valeur change »), sans effet ni requête pour l'ancienne page. Dans ce rendu
+  intermédiaire, la requête demande déjà la page 1. **Vérifié contre le vrai back** (branches
+  `fix/listes-pagination`, 25 comptes temporaires ajoutés puis supprimés) à 1440 px en clair et 390 px en sombre :
+  défaut reproduit avec l'ancien hook (page 2 rendue), puis page 1 dans les deux cas avec le nouveau.
 - Deux mises en page, une seule montée à la fois (`useMediaQuery(LG_MEDIA_QUERY)` dans `MembersList`) :
   lignes empilées sous `lg`, tableau dès `lg` (Nom, Voix, Téléphone, Email, Statut, maquette
   `web/05-Liste-membres`). Chaque ligne est un lien vers la fiche (`getMemberPath(id)` de `lib/paths.ts`,
@@ -814,7 +820,9 @@ Réglages). Retour : « Membres ». Le code est dans `features/members` (API `ge
   `aria-pressed` ; tous les choix sont désactivés tant qu'un changement est en cours d'envoi. Badges de rôle et
   « Bientôt » en 16 px (`text-base`).
 - **Compteur** « 1 admin · 2 secrétaires · 10 membres » (`getRoleCountsLabel`) et recherche « Nom ou email »
-  retardée (`useUsersFilters`, page remise à 1 à chaque recherche). Pagination `ListPagination`.
+  retardée (`useUsersFilters`, même motif que `useMembersFilters` : page remise à 1 à chaque nouvelle recherche,
+  même quand elle revient à une valeur déjà vue). Pagination `ListPagination` ; le back refuse une page au-delà de
+  100 000 (422).
 - **Changement de rôle** (`useRoleChange`) : toast « {Nom} : Secrétaire. » ; erreurs par `getRoleErrorMessage`
   (`utils.ts`) : 422 avec la raison du back (`getValidationMessage`), 403 « Seul un admin peut changer les rôles. ».
   `useAssignUserRole` invalide la liste des rôles, `memberKeys.all` (ligne « Rôle » de la fiche) et `me` : un admin
@@ -828,8 +836,10 @@ Réglages). Retour : « Membres ». Le code est dans `features/members` (API `ge
   mobile), refus réel du dernier admin (rôle Admin retiré puis rendu au compte technique en base), interrupteur
   « Mode sombre ». Après le déplacement dans Membres : bouton visible pour l'admin (web et mobile), absent pour la
   secrétaire, `/members/roles` la renvoie à l'accueil ; fiche membre : « Rôle : Admin » sans « Changer » pour la
-  secrétaire, changement aller et retour depuis la fiche pour l'admin ; plus de lien dans le Profil. **Non
-  vérifié** à l'écran : la pagination (13 comptes) et le 403.
+  secrétaire, changement aller et retour depuis la fiche pour l'admin ; plus de lien dans le Profil. Pagination
+  vérifiée ensuite (branches `fix/listes-pagination`, 39 comptes dont 25 temporaires, 1440 px en clair et 390 px en
+  sombre) : page 2 de « page », recherche effacée puis retapée, retour en page 1 (l'ancien hook rendait la page 2).
+  **Non vérifié** à l'écran : le 403.
 
 ## Répertoire
 
