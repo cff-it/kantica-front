@@ -2,6 +2,7 @@ import type { UseQueryResult } from '@tanstack/react-query';
 
 import { ListPagination } from '@/components/common/list-pagination';
 import { Button } from '@/components/ui/button';
+import { isPageOutOfRange } from '@/hooks/use-page-in-range';
 import { cn } from '@/lib/utils';
 
 import type { MembersPage } from '../types';
@@ -52,6 +53,17 @@ export function MembersResults({
   }
 
   const { data: members, meta } = query.data;
+
+  // Page devenue trop grande (des membres supprimés pendant qu'on était en
+  // page 3) : la page revient à la dernière (`usePageInRange`), le temps que
+  // cette page arrive. Toute autre liste vide tombe sur le message ci-dessous.
+  if (members.length === 0 && isPageOutOfRange(meta)) {
+    return (
+      <p role="status" className="py-12 text-center text-muted-foreground">
+        Chargement des membres…
+      </p>
+    );
+  }
 
   if (members.length === 0) {
     return (

@@ -1,5 +1,6 @@
 import { PageHeader } from '@/components/common/page-header';
 import { SearchField } from '@/components/common/search-field';
+import { usePageInRange } from '@/hooks/use-page-in-range';
 
 import { AddMemberLink } from '../components/add-member-link';
 import { ExportMembersDialog } from '../components/export-members-dialog';
@@ -17,6 +18,7 @@ import { getExportCount, getRegisteredLabel } from '../utils';
 export function MembersListPage() {
   const filters = useMembersFilters();
   const members = useMembers(filters.query);
+  usePageInRange(members.data?.meta, filters.query.page ?? 1, filters.setPage);
   const meta = members.data?.meta;
 
   return (

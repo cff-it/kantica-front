@@ -2,6 +2,7 @@ import type { UseQueryResult } from '@tanstack/react-query';
 
 import { ListPagination } from '@/components/common/list-pagination';
 import { Button } from '@/components/ui/button';
+import { isPageOutOfRange } from '@/hooks/use-page-in-range';
 import { cn } from '@/lib/utils';
 
 import { useRoleChange } from '../hooks/use-role-change';
@@ -51,6 +52,17 @@ export function UsersResults({
   }
 
   const { data: users, meta } = query.data;
+
+  // Page devenue trop grande (des comptes supprimés pendant qu'on était en
+  // page 3) : la page revient à la dernière (`usePageInRange`), le temps que
+  // cette page arrive. Toute autre liste vide tombe sur le message ci-dessous.
+  if (users.length === 0 && isPageOutOfRange(meta)) {
+    return (
+      <p role="status" className="py-12 text-center text-muted-foreground">
+        Chargement des comptes…
+      </p>
+    );
+  }
 
   if (users.length === 0) {
     return (
