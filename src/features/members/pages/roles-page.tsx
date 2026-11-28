@@ -2,6 +2,7 @@ import { ChevronLeft } from 'lucide-react';
 import { Link } from 'react-router';
 
 import { SearchField } from '@/components/common/search-field';
+import { usePageInRange } from '@/hooks/use-page-in-range';
 import { paths } from '@/lib/paths';
 
 import { UsersResults } from '../components/users-results';
@@ -16,6 +17,7 @@ import { getRoleCountsLabel } from '../utils';
 export function RolesPage() {
   const filters = useUsersFilters();
   const users = useUsers(filters.query);
+  usePageInRange(users.data?.meta, filters.query.page ?? 1, filters.setPage);
   const counts = users.data?.meta.role_counts;
 
   return (

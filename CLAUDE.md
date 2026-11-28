@@ -495,6 +495,10 @@ chargement du JS) est le nom seul.
   intermédiaire, la requête demande déjà la page 1. **Vérifié contre le vrai back** (branches
   `fix/listes-pagination`, 25 comptes temporaires ajoutés puis supprimés) à 1440 px en clair et 390 px en sombre :
   défaut reproduit avec l'ancien hook (page 2 rendue), puis page 1 dans les deux cas avec le nouveau.
+- **Page devenue trop grande** : comme pour le répertoire, `usePageInRange` ramène la page à la dernière pendant le
+  rendu de `MembersListPage`, et `MembersResults` affiche « Chargement des membres… » le temps qu'elle arrive
+  (`isPageOutOfRange`), au lieu d'un faux « Aucun membre ». **Vérifié contre le vrai back** (25 comptes temporaires,
+  supprimés en base pendant la lecture de la page 1, puis « Suivant ») à 1440 px en clair : retour en page 1.
 - Deux mises en page, une seule montée à la fois (`useMediaQuery(LG_MEDIA_QUERY)` dans `MembersList`) :
   lignes empilées sous `lg`, tableau dès `lg` (Nom, Voix, Téléphone, Email, Statut, maquette
   `web/05-Liste-membres`). Chaque ligne est un lien vers la fiche (`getMemberPath(id)` de `lib/paths.ts`,
@@ -823,7 +827,9 @@ Réglages). Retour : « Membres ». Le code est dans `features/members` (API `ge
 - **Compteur** « 1 admin · 2 secrétaires · 10 membres » (`getRoleCountsLabel`) et recherche « Nom ou email »
   retardée (`useUsersFilters`, même motif que `useMembersFilters` : page remise à 1 à chaque nouvelle recherche,
   même quand elle revient à une valeur déjà vue). Pagination `ListPagination` ; le back refuse une page au-delà de
-  100 000 (422).
+  100 000 (422). Page devenue trop grande : `usePageInRange` ramène à la dernière page, et `UsersResults` affiche
+  « Chargement des comptes… » pendant la correction ; vérifié contre le vrai back à 390 px en sombre (comptes
+  supprimés pendant la lecture de la page 1, puis « Suivant » : retour en page 1).
 - **Changement de rôle** (`useRoleChange`) : toast « {Nom} : Secrétaire. » ; erreurs par `getRoleErrorMessage`
   (`utils.ts`) : 422 avec la raison du back (`getValidationMessage`), 403 « Seul un admin peut changer les rôles. ».
   `useAssignUserRole` invalide la liste des rôles, `memberKeys.all` (ligne « Rôle » de la fiche) et `me` : un admin
@@ -866,8 +872,9 @@ pour tous les rôles. Maquettes `03-Repertoire-et-voix/{mobile,web}/01-Repertoir
   alors la page à la dernière pendant le rendu de `SongsListPage`, et `SongsResults` affiche « Chargement du
   répertoire… » le temps que cette page arrive, au lieu d'un faux « Aucun cantique ». Ce chargement ne s'affiche que
   dans le cas corrigé (`isPageOutOfRange` : dernière page d'au moins 1 et dépassée) ; toute autre liste vide, même
-  incohérente, montre le message de liste vide : jamais de chargement sans fin (deuxième revue de KAN-18). Les listes des membres et des rôles ne l'utilisent pas encore. Cas typique : des cantiques supprimés
-  pendant qu'on lit la page 1, puis « Suivant » vers une page 2 qui n'existe plus. La page 1 réaffichée vient du cache :
+  incohérente, montre le message de liste vide : jamais de chargement sans fin (deuxième revue de KAN-18). Les listes
+  des membres et des rôles l'utilisent aussi. Cas typique : des cantiques supprimés pendant qu'on lit la page 1, puis
+  « Suivant » vers une page 2 qui n'existe plus. La page 1 réaffichée vient du cache :
   son compteur peut dater de 30 s au plus (`staleTime`), jusqu'à son prochain rechargement. **Vérifié contre le vrai
   back** (28 cantiques dont 15 temporaires, 10 supprimés par l'API avec le compte admin, puis « Suivant ») à 1440 px
   en clair et 390 px en sombre : retour en page 1, ni « Aucun cantique » ni écran bloqué. Le rechargement au retour du
