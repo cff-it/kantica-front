@@ -42,7 +42,8 @@ export function SongForm({ song }: SongFormProps) {
   // Un cantique peut compter beaucoup de paroles : « Annuler », un lien, un
   // onglet ou le geste « retour » demandent confirmation tant que la saisie
   // n'est pas enregistrée.
-  const { blocker, allowLeaving } = useUnsavedChangesGuard(isDirty);
+  const { blocker, leaveWithoutConfirmation } =
+    useUnsavedChangesGuard(isDirty);
   const pending = createSong.isPending || updateSong.isPending;
   // « Annuler » et la fin d'un enregistrement ramènent à l'écran d'origine : la
   // fiche du cantique (KAN-25) à la modification, le répertoire à l'ajout.
@@ -78,8 +79,7 @@ export function SongForm({ song }: SongFormProps) {
         {
           onSuccess: () => {
             toast.success('Cantique modifié.');
-            allowLeaving();
-            void navigate(exitPath);
+            leaveWithoutConfirmation(() => void navigate(exitPath));
           },
           onError,
         },
@@ -91,8 +91,7 @@ export function SongForm({ song }: SongFormProps) {
     createSong.mutate(input, {
       onSuccess: () => {
         toast.success('Cantique ajouté.');
-        allowLeaving();
-        void navigate(exitPath);
+        leaveWithoutConfirmation(() => void navigate(exitPath));
       },
       onError,
     });

@@ -823,14 +823,21 @@ il reste le thème, voir « Écarts »).
   modifier des sections périmées (`section_id` et `notes` faux, 422 sur `sections.N.id`). `SongLoader` n'affiche donc
   le formulaire qu'une fois le cantique rechargé (état `isReady`, motif « ajuster un état pendant le rendu »), puis ne
   le démonte plus : un rechargement en arrière-plan ou son échec ne doit pas faire perdre la saisie. Un échec du
-  rechargement à l'ouverture affiche l'erreur avec « Réessayer », pas le formulaire sur l'ancien cache.
+  rechargement à l'ouverture affiche l'erreur avec « Réessayer », pas le formulaire sur l'ancien cache. Un cantique
+  **sans `sections`** dans la réponse (relation conditionnelle côté back, `whenLoaded`) n'ouvre pas non plus le
+  formulaire : le PUT est complet, le lire comme une liste vide ferait effacer toutes les paroles par un simple
+  changement de titre.
 - **Saisie non enregistrée** (revue de la PR) : `useUnsavedChangesGuard(isDirty)` (`hooks/`, `useBlocker` de React
   Router, routeur de données) bloque tout changement de page tant que le formulaire est modifié : « Annuler », lien,
   onglet, geste « retour ». `UnsavedChangesDialog` (`components/common/`, feuille en bas sur mobile, fenêtre centrée
   dès `md`) demande « Quitter sans enregistrer ? » ; « Rester » (premier bouton, focus), Échap et la croix restent sur
-  l'écran. `SongForm` appelle `allowLeaving()` juste avant de naviguer après un enregistrement réussi : le formulaire
-  reste « modifié » tant qu'il n'est pas réinitialisé. **Ne couvre pas** la fermeture ou le rechargement de
-  l'onglet (pas de `beforeunload`). À reprendre pour les autres longs formulaires (fiche membre, ajout d'un membre).
+  l'écran. Après un enregistrement réussi, `SongForm` navigue par `leaveWithoutConfirmation(() => navigate(...))` : le
+  formulaire reste « modifié » tant qu'il n'est pas réinitialisé, la garde est donc levée le temps de l'appel (le
+  routeur l'évalue de façon synchrone dans `navigate`) puis **aussitôt réarmée**, pour qu'un écran resté monté reste
+  protégé. **Redirection 401** (gestionnaire de `providers.tsx`) avec un formulaire modifié : elle aboutit sur
+  `/login`, sans feuille ni blocage (le formulaire se démonte quand `me` passe à `null`, ce qui retire la garde).
+  **Ne couvre pas** la fermeture ou le rechargement de l'onglet (pas de `beforeunload`). À reprendre pour les autres
+  longs formulaires (fiche membre, ajout d'un membre).
 - **Écarts avec les maquettes** : le thème liturgique n'est pas saisi (le back ne l'accepte pas, KAN-23) ; le titre de
   l'ajout est « Nouveau cantique » (libellé du ticket).
 - **Champ invisible** : `section_id` (et non `id`, réservé par `useFieldArray`) voyage avec la section sans être
@@ -872,8 +879,12 @@ il reste le thème, voir « Écarts »).
   (ajout et modification) sans confirmation, auteur enregistré et sections conservées. Titre modifié par l'API entre
   deux ouvertures (moins de 30 s) : le formulaire affiche le nouveau, un `GET` part à chaque ouverture. Hors ligne :
   « Chargement » environ 3 s (deux nouveaux essais) puis « Impossible de charger le cantique » avec « Réessayer », qui
-  rouvre le formulaire une fois le réseau revenu. **Non vérifié** : le geste « retour » du navigateur d'un téléphone
-  (le routeur traite le même événement, `history.back()` n'a été essayé que sans saisie).
+  rouvre le formulaire une fois le réseau revenu. Réponse sans `sections` (champ retiré par un script dans la page) :
+  erreur et « Réessayer », pas de formulaire. Enregistrement après la garde réarmée (modification) : sortie directe vers
+  la fiche, sans feuille. 401 avec un formulaire modifié (jeton rendu invalide dans le navigateur puis
+  « Enregistrer ») : arrivée sur `/login`, aucune feuille. **Non vérifié** : le geste « retour » du navigateur d'un
+  téléphone (le routeur traite le même événement, `history.back()` n'a été essayé que sans saisie), et le réarmement
+  d'une navigation sans effet (déduit du code, pas reproduit à l'écran).
 
 ---
 
