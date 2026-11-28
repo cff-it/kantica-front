@@ -19,9 +19,16 @@ export function usePageInRange(
 ) {
   if (
     meta !== undefined &&
-    meta.current_page > meta.last_page &&
+    isPageOutOfRange(meta) &&
     page !== meta.last_page
   ) {
     setPage(meta.last_page);
   }
+}
+
+// La page demandée dépasse la dernière, et cette dernière existe : c'est le
+// seul cas que `usePageInRange` corrige. Sert aussi à l'écran, pour afficher
+// le chargement pendant la correction et non pour une réponse incohérente.
+export function isPageOutOfRange(meta: PageMeta): boolean {
+  return meta.last_page >= 1 && meta.current_page > meta.last_page;
 }

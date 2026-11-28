@@ -87,7 +87,7 @@ function SongsTable({ songs }: SongsListProps) {
               <td className="px-5 py-3">
                 <Link
                   to={getSongPath(song.id)}
-                  className="font-heading text-xl font-semibold wrap-anywhere outline-none after:absolute after:inset-0"
+                  className="font-heading text-xl font-semibold wrap-anywhere outline-none after:absolute after:inset-0 focus-visible:after:ring-3 focus-visible:after:ring-ring/50 focus-visible:after:ring-inset"
                 >
                   {song.title}
                 </Link>
