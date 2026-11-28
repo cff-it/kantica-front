@@ -3,6 +3,8 @@ import { FormProvider, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 
+import { UnsavedChangesDialog } from '@/components/common/unsaved-changes-dialog';
+import { useUnsavedChangesGuard } from '@/hooks/use-unsaved-changes-guard';
 import { isForbiddenError } from '@/lib/api-errors';
 import { applyServerErrors } from '@/lib/form-errors';
 import { getSongPath, paths } from '@/lib/paths';
@@ -36,7 +38,11 @@ export function SongForm({ song }: SongFormProps) {
     resolver: zodResolver(songFormSchema),
     defaultValues: getSongDefaults(song),
   });
-  const { errors } = form.formState;
+  const { errors, isDirty } = form.formState;
+  // Un cantique peut compter beaucoup de paroles : « Annuler », un lien, un
+  // onglet ou le geste « retour » demandent confirmation tant que la saisie
+  // n'est pas enregistrée.
+  const { blocker, allowLeaving } = useUnsavedChangesGuard(isDirty);
   const pending = createSong.isPending || updateSong.isPending;
   // « Annuler » et la fin d'un enregistrement ramènent à l'écran d'origine : la
   // fiche du cantique (KAN-25) à la modification, le répertoire à l'ajout.
@@ -72,6 +78,7 @@ export function SongForm({ song }: SongFormProps) {
         {
           onSuccess: () => {
             toast.success('Cantique modifié.');
+            allowLeaving();
             void navigate(exitPath);
           },
           onError,
@@ -84,6 +91,7 @@ export function SongForm({ song }: SongFormProps) {
     createSong.mutate(input, {
       onSuccess: () => {
         toast.success('Cantique ajouté.');
+        allowLeaving();
         void navigate(exitPath);
       },
       onError,
@@ -117,6 +125,7 @@ export function SongForm({ song }: SongFormProps) {
           <SongSubmitBar pending={pending} />
         </form>
       </FormProvider>
+      <UnsavedChangesDialog blocker={blocker} />
     </div>
   );
 }

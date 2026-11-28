@@ -68,7 +68,8 @@ src/
 │                             # suivante des listes), SearchField (recherche des listes : membres, rôles,
 │                             # répertoire), RoleBadge (badge du rôle), ThemeSwitch (interrupteur
 │                             # « Mode sombre » du Profil), SegmentedControl (choix unique en segments :
-│                             # Couplet / Refrain)
+│                             # Couplet / Refrain), UnsavedChangesDialog (confirmation avant de quitter un
+│                             # formulaire modifié, avec `useUnsavedChangesGuard`)
 │
 ├── lib/
 │   ├── api-client.ts         # Instance Axios unique (jeton Bearer, intercepteur 401)
@@ -92,7 +93,8 @@ src/
 │
 ├── assets/brand/             # Logo et filigranes (PNG transparents, voir Points d'attention)
 ├── hooks/                    # Hooks génériques sans métier (useDebounce, useMediaQuery, useRouteTitle,
-│                             # usePageInRange : retour à la dernière page d'une liste qui a rétréci)
+│                             # usePageInRange : retour à la dernière page d'une liste qui a rétréci,
+│                             # useUnsavedChangesGuard : bloque la navigation d'un formulaire modifié)
 └── types/                    # Types partagés : User, Role, Voice, Paginated<T>
 ```
 
@@ -815,6 +817,20 @@ il reste le thème, voir « Écarts »).
   (`getHiddenValidationMessage`, `utils.ts`) : sinon l'erreur resterait invisible et chaque essai échouerait pareil. 403
   et autres erreurs : toast. `useCreateSong` et `useUpdateSong` sont en `networkMode: 'always'` et invalident
   `songKeys.all`.
+- **Chargement à la modification** (revue de la PR) : `useSong` est en `networkMode: 'always'` (hors ligne, l'erreur et
+  « Réessayer » s'affichent au lieu d'un « Chargement » sans fin) et en `refetchOnMount: 'always'`. Le formulaire ne
+  lit ses valeurs de départ qu'au montage et le PUT est complet : un cache encore frais (`staleTime` de 30 s) ferait
+  modifier des sections périmées (`section_id` et `notes` faux, 422 sur `sections.N.id`). `SongLoader` n'affiche donc
+  le formulaire qu'une fois le cantique rechargé (état `isReady`, motif « ajuster un état pendant le rendu »), puis ne
+  le démonte plus : un rechargement en arrière-plan ou son échec ne doit pas faire perdre la saisie. Un échec du
+  rechargement à l'ouverture affiche l'erreur avec « Réessayer », pas le formulaire sur l'ancien cache.
+- **Saisie non enregistrée** (revue de la PR) : `useUnsavedChangesGuard(isDirty)` (`hooks/`, `useBlocker` de React
+  Router, routeur de données) bloque tout changement de page tant que le formulaire est modifié : « Annuler », lien,
+  onglet, geste « retour ». `UnsavedChangesDialog` (`components/common/`, feuille en bas sur mobile, fenêtre centrée
+  dès `md`) demande « Quitter sans enregistrer ? » ; « Rester » (premier bouton, focus), Échap et la croix restent sur
+  l'écran. `SongForm` appelle `allowLeaving()` juste avant de naviguer après un enregistrement réussi : le formulaire
+  reste « modifié » tant qu'il n'est pas réinitialisé. **Ne couvre pas** la fermeture ou le rechargement de
+  l'onglet (pas de `beforeunload`). À reprendre pour les autres longs formulaires (fiche membre, ajout d'un membre).
 - **Écarts avec les maquettes** : le thème liturgique n'est pas saisi (le back ne l'accepte pas, KAN-23) ; le titre de
   l'ajout est « Nouveau cantique » (libellé du ticket).
 - **Champ invisible** : `section_id` (et non `id`, réservé par `useFieldArray`) voyage avec la section sans être
@@ -850,6 +866,14 @@ il reste le thème, voir « Écarts »).
   dessus, aucune requête) et conservée telle quelle quand la carte est déplacée, numéros qui suivent leur carte, deux
   annonces identiques de suite relues (espace insécable en fin de phrase), focus resté sur une flèche après chaque
   déplacement, POST 201 avec `number` en entier dans l'ordre affiché, numéros relus à l'ouverture en modification.
+- **Revérifié après la deuxième revue** (chargement et saisie non enregistrée) à 390 px en clair : formulaire intact,
+  aucune confirmation ; formulaire modifié, clic sur un onglet ou « Annuler » ouvre la feuille (focus sur « Rester »),
+  « Rester » et Échap gardent l'écran et la saisie, « Quitter sans enregistrer » mène au répertoire ; enregistrement
+  (ajout et modification) sans confirmation, auteur enregistré et sections conservées. Titre modifié par l'API entre
+  deux ouvertures (moins de 30 s) : le formulaire affiche le nouveau, un `GET` part à chaque ouverture. Hors ligne :
+  « Chargement » environ 3 s (deux nouveaux essais) puis « Impossible de charger le cantique » avec « Réessayer », qui
+  rouvre le formulaire une fois le réseau revenu. **Non vérifié** : le geste « retour » du navigateur d'un téléphone
+  (le routeur traite le même événement, `history.back()` n'a été essayé que sans saisie).
 
 ---
 
