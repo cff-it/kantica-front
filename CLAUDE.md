@@ -444,6 +444,14 @@ La source de vérité est `app/layouts/nav-items.ts`.
 Événements et Paiements sont rangés dans Profil (« Vie de la chorale », badge « Bientôt ») en attendant leurs
 écrans. Les routes des lots ultérieurs affichent `<ComingSoon />` : ne pas y inventer d'interface.
 
+**Hauteur de la barre d'onglets** : une seule source, les variables `--tabbar-item-height` (3,5 rem, un onglet) et
+`--tabbar-height` (onglet, bordure de 1 px et zone du geste d'accueil `env(safe-area-inset-bottom)`) de
+`src/index.css`. `AppLayout` donne la première aux onglets ; les barres d'actions fixes sous `lg` (`SongSubmitBar`,
+`ImportActionBar`) se posent au-dessus avec `bottom-(--tabbar-height)`. Ne pas recopier `3.5rem` dans un écran :
+changer la barre sans la variable ferait passer le bouton dessous ou le ferait flotter, sans aucune erreur. Vérifié à
+390 px : 0 px d'écart entre les barres et les onglets, et la variable changée en direct déplace les trois ensemble.
+Non vérifié : une valeur réelle de `safe-area-inset-bottom` (l'émulation n'en pose pas, la formule est celle d'avant).
+
 **Web (dès `lg`)** : la barre d'onglets cède la place à une barre latérale à gauche
 (`app/layouts/app-sidebar.tsx`, maquettes `01-Lot1-Recensement/web`) : marque en haut, mêmes entrées sauf
 Profil, carte de l'utilisateur en bas (initiales, nom, « Rôle · Voix ») qui ouvre `/profile`, bouton de

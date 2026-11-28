@@ -7,6 +7,19 @@
 @custom-variant data-open (&:is([data-state='open'], [data-open]));
 @custom-variant data-closed (&:is([data-state='closed'], [data-closed]));
 
+/* Barre d'onglets des écrans connectés (sous `lg`) : une seule source pour sa
+   hauteur. `AppLayout` donne cette hauteur à chaque onglet ; les barres
+   d'actions fixes (`SongSubmitBar`, `ImportActionBar`) se posent juste
+   au-dessus avec `bottom-(--tabbar-height)`. Le `1px` est la bordure haute de
+   la barre ; `env(safe-area-inset-bottom)`, la zone du geste d'accueil des
+   téléphones. */
+:root {
+  --tabbar-item-height: 3.5rem;
+  --tabbar-height: calc(
+    var(--tabbar-item-height) + 1px + env(safe-area-inset-bottom)
+  );
+}
+
 /*
  * Charte graphique Kantica
  * (Documents/Kantica-maquettes/02-Mode-sombre-et-charte/03-Charte-graphique)
