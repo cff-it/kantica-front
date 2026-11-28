@@ -864,8 +864,9 @@ pour tous les rôles. Maquettes `03-Repertoire-et-voix/{mobile,web}/01-Repertoir
 - **Page devenue trop grande** (relevé par la revue de KAN-18) : si des cantiques disparaissent pendant qu'on est en
   page 3, le back répond `data: []` avec `current_page > last_page`. `usePageInRange` (`hooks/`, générique) ramène
   alors la page à la dernière pendant le rendu de `SongsListPage`, et `SongsResults` affiche « Chargement du
-  répertoire… » le temps que cette page arrive (liste vide mais `meta.total > 0`), au lieu d'un faux « Aucun
-  cantique ». Les listes des membres et des rôles ne l'utilisent pas encore. Cas typique : des cantiques supprimés
+  répertoire… » le temps que cette page arrive, au lieu d'un faux « Aucun cantique ». Ce chargement ne s'affiche que
+  dans le cas corrigé (`isPageOutOfRange` : dernière page d'au moins 1 et dépassée) ; toute autre liste vide, même
+  incohérente, montre le message de liste vide : jamais de chargement sans fin (deuxième revue de KAN-18). Les listes des membres et des rôles ne l'utilisent pas encore. Cas typique : des cantiques supprimés
   pendant qu'on lit la page 1, puis « Suivant » vers une page 2 qui n'existe plus. La page 1 réaffichée vient du cache :
   son compteur peut dater de 30 s au plus (`staleTime`), jusqu'à son prochain rechargement. **Vérifié contre le vrai
   back** (28 cantiques dont 15 temporaires, 10 supprimés par l'API avec le compte admin, puis « Suivant ») à 1440 px
@@ -873,7 +874,9 @@ pour tous les rôles. Maquettes `03-Repertoire-et-voix/{mobile,web}/01-Repertoir
   réseau n'a pas pu être simulé dans le navigateur intégré.
 - **Deux mises en page**, une seule montée (`useMediaQuery`) : lignes sous `lg` (titre en Cormorant Garamond, auteur en
   dessous, chevron ; séparateurs d'un bord à l'autre de l'écran par `-mx-4`) ; tableau dès `lg` (Titre, Auteur, Réf.,
-  chevron ; le lien du titre couvre la ligne). Un auteur ou une référence absents s'affichent « - » dans le tableau ;
+  chevron ; le lien du titre couvre la ligne, et son `::after` porte l'anneau de focus clavier, `ring-3` comme les lignes
+  mobiles, vérifié à 1440 px ; le tableau des membres n'a encore que le fond grisé). Un auteur ou une référence absents
+  s'affichent « - » dans le tableau ;
   sous `lg`, la ligne de l'auteur est omise. Un titre trop long passe à la ligne, même sans espace (`wrap-anywhere`, qui
   laisse aussi la colonne du tableau se resserrer). Une ligne ouvre `/songs/:id` (`getSongPath`), un `<ComingSoon />`
   « Fiche du cantique » en attendant KAN-25 (l'onglet Répertoire reste actif). Pagination `ListPagination`, états
