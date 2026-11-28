@@ -48,7 +48,7 @@ src/
 │   │   └── index.ts          # API publique de la feature
 │   ├── members/              # Lot 1 : liste, fiche, export, import Excel ; « Gestion des rôles » (KAN-63)
 │   ├── profile/              # « Mon profil » (identité, réglages, déconnexion)
-│   ├── songs/                # Répertoire : liste et recherche des cantiques (KAN-18)
+│   ├── songs/                # Répertoire : liste et recherche (KAN-18), formulaire d'un cantique et sections (KAN-4)
 │   ├── masses/               # Messes + PPTX (lot ultérieur)
 │   └── attendance/           # Présences + classements (lot ultérieur)
 │
@@ -788,33 +788,68 @@ et `09-Import-membres-verification`. Entrée : bouton « Importer (Excel) » (`I
   403 et 404. **Non vérifié contre le vrai back** : un aperçu et un import réels d'un fichier Excel (aucun compte
   admin ou secrétaire connu dans la base de dev, migration `file_name` non jouée).
 
-## Sections d'un cantique
+## Formulaire d'un cantique et sections
 
-Éditeur des sections (couplets et refrains) du formulaire d'un cantique : `SongSectionsEditor`
-(`features/songs`). Maquettes `03-Repertoire-et-voix/{mobile/04,web/03}-Edition-cantique-admin`. Le reste du
-formulaire (titre, auteur, référence, thème), ses routes et ses appels API ne sont pas encore construits :
-l'éditeur est prêt à être posé dedans.
+Routes `/songs/new` (`paths.songNew`, `SongCreatePage`) et `/songs/:id/edit` (`paths.songEdit`, `SongEditPage`), sous
+`RequireRole` (`admin`). Maquettes `03-Repertoire-et-voix/{mobile/04,web/03}-Edition-cantique-admin`. Tickets KAN-4
+(US-02, les sections ; il a absorbé KAN-67) et KAN-13 (US-01, l'ajout : le formulaire livré ici en couvre l'essentiel,
+il reste le thème, voir « Écarts »).
 
-- **Branchement** : dans un `FormProvider` dont le schéma contient `sections: songSectionsSchema`. Les cartes lisent
-  le formulaire par `useSongForm()` (même principe que `useRecordForm` de `members`). Valeurs de départ :
-  `getSectionsDefaults(song.sections)` ; corps du POST et du PUT : `toSectionsPayload(values.sections)`.
-- **Back** (`SongRequest`) : `sections: [{id?, type, number?, text}]`, liste complète et ordonnée. L'ordre envoyé est
-  la position, une section sans `id` est créée, une section absente de la liste est supprimée. `text` est obligatoire
-  (un 422 sur `sections.N.text` est posé sous le bon champ par `applyServerErrors`).
-- **Champs invisibles** : `section_id` (et non `id`, réservé par `useFieldArray`) et `number` (numéro saisi, Couplet
-  1, 2, 3) voyagent avec la section sans être affichés. Sans eux, le PUT recréerait chaque section et effacerait les
-  numéros. Changer le type ne touche pas à `number`. Le type `pont` du back n'est pas proposé par le sélecteur : une
+- **Formulaire** (`SongForm`, une seule arborescence, bascule `lg`) : Titre (obligatoire), Auteur et Référence
+  (`SongInfoCard`), puis `SongSectionsEditor`, enregistrés d'un seul appel (`POST /songs` ou `PUT /songs/{id}`,
+  `SongInput`). Les champs et les cartes lisent le formulaire par `useSongForm()` (même principe que `useRecordForm`
+  de `members`). Valeurs de départ : `getSongDefaults(song)` ; corps de l'envoi : `toSongInput(values, song.notes)`.
+  Mobile : barre « Annuler » et titre, bouton « Enregistrer le cantique » fixé au-dessus de la barre d'onglets
+  (`SongSubmitBar`, le formulaire garde `pb-20`). Web : fil d'Ariane, titre, « Annuler » et « Enregistrer le cantique »
+  dans la barre collée en haut, carte « Informations » à gauche et sections à droite.
+- **Après l'envoi** : ajout, toast « Cantique ajouté. » puis répertoire (rechargé) ; modification, toast « Cantique
+  modifié. » puis la fiche `/songs/:id`, un « Bientôt » jusqu'à KAN-25. « Annuler » mène au même endroit. **Aucun lien
+  d'entrée vers la modification** : c'est le crayon de la fiche (KAN-25) ; l'écran s'ouvre par son adresse.
+- **Back** (`SongRequest`) : `{title, author, reference, notes, sections: [{id?, type, number?, text}]}`. Titre 255
+  caractères au plus, auteur 255, référence 50 ; auteur et référence vides partent en `null`. Le PUT est complet :
+  `notes` (absentes de la maquette) repartent telles qu'enregistrées, sinon le back les efface. La liste des sections
+  est complète et ordonnée : l'ordre envoyé est la position, une section sans `id` est créée, une section absente de
+  la liste est supprimée. `text` est obligatoire.
+- **Erreurs** : une 422 est posée sous les champs par `applyServerErrors` (le premier prend le focus). Une 422 sur un
+  champ que l'écran n'affiche pas (`sections.N.id` : section retirée par un autre admin entre-temps) part en toast
+  (`getHiddenValidationMessage`, `utils.ts`) : sinon l'erreur resterait invisible et chaque essai échouerait pareil. 403
+  et autres erreurs : toast. `useCreateSong` et `useUpdateSong` sont en `networkMode: 'always'` et invalident
+  `songKeys.all`.
+- **Écarts avec les maquettes** : le thème liturgique n'est pas saisi (le back ne l'accepte pas, KAN-23) ; le titre de
+  l'ajout est « Nouveau cantique » (libellé du ticket).
+- **Champ invisible** : `section_id` (et non `id`, réservé par `useFieldArray`) voyage avec la section sans être
+  affiché. Sans lui, le PUT recréerait chaque section. Le type `pont` du back n'est pas proposé par le sélecteur : une
   section `pont` existante est conservée, sans segment coché.
-- **Écarts avec les maquettes** : « Supprimer » (avec confirmation, `DeleteSectionDialog`) est sous le texte de
+- **Champ « Numéro »** (revue de la PR) : le back garde `number` tel quel (Couplet 1, 2, 3), sans jamais le calculer ni
+  le renuméroter. Un numéro caché deviendrait faux dès qu'on déplace une carte ou qu'on change son type : il est donc
+  affiché, sous le texte de chaque carte, et l'admin le corrige. Facultatif ; entier de 1 à 999 comme le back, message
+  « Numéro de 1 à 999. » sous le champ (`sectionNumberSchema`, `parseSectionNumber` de `sections.ts` : vide donne `null`,
+  une saisie illisible reste du texte et est refusée au lieu d'être effacée). Changer le type ou l'ordre ne touche pas
+  au numéro. Écart avec les maquettes : elles n'ont pas ce champ.
+- **Écarts des sections** : « Supprimer » (avec confirmation, `DeleteSectionDialog`) est sous le texte de
   chaque carte, car la maquette n'a pas de suppression et trois boutons de 44 px ne tiennent pas dans l'en-tête à
   390 px. Flèche haut désactivée sur la première carte, flèche bas sur la dernière. État vide (« Aucune section »).
   « + Couplet » et « + Refrain » aussi en mobile (la maquette mobile est coupée avant).
 - **Accessibilité** : après un déplacement, le focus reste sur la flèche utilisée ; après une suppression, il passe
-  au texte de la section voisine ; un ajout focalise son texte. Une région `role="status"` annonce chaque action.
-  `SegmentedControl` (`components/common/`) repose sur des radios natifs : les flèches du clavier changent de type.
-- **Vérifié** dans le navigateur sur une page temporaire, retirée ensuite (390 px et 1440 px, clair et sombre) :
-  réordonnancement, ajout, suppression et annulation, validation, corps envoyé (ids, ordre, `number`, `pont`) et
-  clavier. **Non vérifié contre le vrai back** : aucun appel API de cantique n'existe encore.
+  au texte de la section voisine ; un ajout focalise son texte. Le focus est rendu par un `useEffect` qui dépend de
+  `fields` et ne vide sa demande qu'une fois l'élément trouvé : un rendu intermédiaire ne la consomme pas. Une région
+  `role="status"` annonce chaque action ; deux annonces identiques de suite (« Section déplacée en position 3 sur 4 »
+  pour deux cartes) sont relues, grâce à un espace insécable ajouté une annonce sur deux. `SegmentedControl`
+  (`components/common/`) repose sur des radios natifs : les flèches du clavier changent de type ; ses segments font
+  44 px de haut (`min-h-11`).
+- **Vérifié contre le vrai back** (branche `feature/kan-38-sections-cantiques`, base de dev, compte admin) à 1440 px
+  en clair et à 390 px en clair et en sombre : ajout (201, positions égales à l'ordre affiché), modification
+  (identifiants conservés dans le nouvel ordre, section ajoutée créée, `number` et `notes` conservés), suppression avec
+  confirmation (section retirée en base, focus sur la section voisine), validation côté client (aucune requête, focus
+  sur le titre), cantique inconnu (« introuvable »), 422 sur `sections.N.id` (toast avec la raison du back, bouton
+  réactivé), barre fixe qui ne cache pas la fin de la liste. Le type `pont` et le clavier avaient été vérifiés sur
+  l'éditeur seul, avant le formulaire. **Non vérifié** à l'écran : le 403 d'un compte non admin sur
+  `/songs/:id/edit` (même guard que `/songs/new`, vérifié pour un membre), le hors-ligne.
+- **Revérifié après la revue de la PR** (champ « Numéro », focus, annonces, segments) à 390 px en clair et en sombre
+  et à 1440 px : segments et champ de 44 px de haut, saisie « abc » refusée sous le champ (« Numéro de 1 à 999. », focus
+  dessus, aucune requête) et conservée telle quelle quand la carte est déplacée, numéros qui suivent leur carte, deux
+  annonces identiques de suite relues (espace insécable en fin de phrase), focus resté sur une flèche après chaque
+  déplacement, POST 201 avec `number` en entier dans l'ordre affiché, numéros relus à l'ouverture en modification.
 
 ---
 
@@ -888,8 +923,8 @@ pour tous les rôles. Maquettes `03-Repertoire-et-voix/{mobile,web}/01-Repertoir
   `meta.songs_count` (« 13 cantiques ») porte sur tout le répertoire, `meta.total` suit la recherche.
 - **En-tête** : « Répertoire », « N cantiques », et le bouton « + Ajouter » sous `lg`, « + Ajouter un cantique » dès `lg`
   (un seul lien, nom accessible « Ajouter un cantique » : la fin du libellé est en `max-lg:sr-only`). Bouton **réservé à
-  l'admin** (`RoleGuard`, KAN-13) ; il mène à `/songs/new` (`paths.songNew`, sous `RequireRole` admin), un
-  `<ComingSoon />` en attendant l'écran de KAN-13.
+  l'admin** (`RoleGuard`, KAN-13) ; il mène à `/songs/new` (`paths.songNew`, sous `RequireRole` admin) : le formulaire
+  d'un cantique (voir « Formulaire d'un cantique et sections »).
 - **Recherche** « Titre ou auteur » : `SearchField` de `components/common/` (aussi utilisé par les membres et la gestion
   des rôles), retardée. Chaque nouvelle recherche ramène à la page 1, même quand elle revient à une valeur déjà vue
   (« a » en page 3, effacée, puis « a » de nouveau) : `useSongsFilters` garde la recherche pour laquelle la page a été
@@ -1056,5 +1091,9 @@ npm run lint     # ESLint
      fiche (voir « Profil », « Gestion des rôles »)
    - [x] KAN-18 : répertoire (liste, recherche « Titre ou auteur », pagination, « + Ajouter » pour l'admin ; voir
      « Répertoire »)
+   - [x] KAN-4 (US-02, absorbe KAN-67) : sections d'un cantique, dans le formulaire d'ajout et de modification (voir
+     « Formulaire d'un cantique et sections »)
+   - [ ] KAN-13 : thème liturgique du formulaire (avec KAN-23), reste de l'ajout d'un cantique
    - [ ] KAN-18 : pastilles de thème (filtres, couleur, colonne Thème), avec KAN-23
-   - [ ] KAN-25 : fiche du cantique (`/songs/:id`, « Bientôt » pour l'instant)
+   - [ ] KAN-25 : fiche du cantique (`/songs/:id`, « Bientôt » pour l'instant), avec le crayon qui ouvre
+     `/songs/:id/edit` (écran déjà construit, sans lien d'entrée)

@@ -20,7 +20,8 @@ type SegmentedControlProps<T extends string> = {
 // Sélecteur segmenté à choix unique (maquette 03-Repertoire-et-voix,
 // « Couplet / Refrain »). Boutons radio natifs masqués visuellement : les
 // flèches du clavier et les lecteurs d'écran fonctionnent sans code en plus.
-// Le segment actif est celui dont le radio est coché (`has-checked`).
+// Le segment actif est celui dont le radio est coché (`has-checked`). Chaque
+// segment fait 44 px de haut au moins (zone tactile minimale de l'interface).
 export function SegmentedControl<T extends string>({
   name,
   legend,
@@ -38,7 +39,7 @@ export function SegmentedControl<T extends string>({
           <label
             key={option.value}
             className={cn(
-              'flex min-h-10 flex-1 cursor-pointer items-center justify-center',
+              'flex min-h-11 flex-1 cursor-pointer items-center justify-center',
               'rounded-lg px-3 text-base font-semibold text-muted-foreground',
               'transition-colors hover:text-foreground',
               'has-checked:bg-background has-checked:text-foreground',

@@ -1,13 +1,13 @@
 import { useFormContext } from 'react-hook-form';
 
-import type { SongSectionsInput } from '../schemas';
+import type { SongFormInput } from '../schemas';
 
-// Formulaire du cantique, lu dans le `FormProvider` le plus proche : les
-// sections n'en lisent que `sections`, le reste (titre, auteur...) leur est
-// inconnu. Le type des valeurs est posé ici, une seule fois : React Hook Form
-// ne vérifie pas que le provider le porte. C'est vrai tant que le schéma du
-// formulaire contient `sections: songSectionsSchema`. Même principe que
-// `useRecordForm` de `members`.
+// Formulaire du cantique, lu dans le `FormProvider` le plus proche : les champs
+// (`SongInfoCard`) et les cartes de sections (`SongSectionCard`) le lisent sans
+// recevoir de prop `form`. Le type des valeurs est posé ici, une seule fois :
+// React Hook Form ne vérifie pas que le provider le porte. C'est vrai parce que
+// `SongForm` est le seul à l'installer, avec `songFormSchema`. Même principe
+// que `useRecordForm` de `members`.
 export function useSongForm() {
-  return useFormContext<SongSectionsInput>();
+  return useFormContext<SongFormInput>();
 }

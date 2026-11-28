@@ -14,6 +14,8 @@ export const paths = {
   songNew: '/songs/new',
   // Fiche d'un cantique (KAN-25), ouverte depuis une ligne du répertoire.
   song: '/songs/:id',
+  // Modification d'un cantique (admin), ouverte par le crayon de la fiche.
+  songEdit: '/songs/:id/edit',
   masses: '/masses',
   rankings: '/rankings',
   members: '/members',
@@ -37,6 +39,11 @@ export const paths = {
 // Chemin de la fiche d'un cantique (`paths.song` est le motif de la route).
 export function getSongPath(id: number): string {
   return `${paths.songs}/${id}`;
+}
+
+// Chemin de « Modifier le cantique » (`paths.songEdit` est le motif).
+export function getSongEditPath(id: number): string {
+  return `${getSongPath(id)}/edit`;
 }
 
 // Chemin de la fiche d'un membre (`paths.member` est le motif de la route).

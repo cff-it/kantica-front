@@ -37,14 +37,26 @@ export function SongSectionsEditor() {
   // déplace son bouton dans le DOM, ce qui lui fait perdre le focus ; en
   // supprimer une le laisserait sur le corps de la page.
   const focusAfterRender = useRef<(() => HTMLElement | null) | null>(null);
-  // Phrase lue par les lecteurs d'écran après une action sur la liste.
-  const [announcement, setAnnouncement] = useState('');
+  // Phrase lue par les lecteurs d'écran après une action sur la liste. `tick`
+  // compte les annonces : deux phrases identiques de suite (« Section déplacée
+  // en position 3 sur 4 » pour deux cartes différentes) ne changeraient pas le
+  // texte de la zone, et la seconde ne serait pas relue.
+  const [announcement, setAnnouncement] = useState({ text: '', tick: 0 });
 
+  const announce = (text: string) =>
+    setAnnouncement((previous) => ({ text, tick: previous.tick + 1 }));
+
+  // Le focus est rendu quand la liste change (`fields`), une fois la carte
+  // cible dans le DOM, et la demande n'est vidée qu'une fois l'élément trouvé :
+  // un rendu intermédiaire (annonce, validation) ne la consomme pas trop tôt.
   useEffect(() => {
-    const find = focusAfterRender.current;
-    focusAfterRender.current = null;
-    find?.()?.focus();
-  });
+    const element = focusAfterRender.current?.();
+
+    if (element) {
+      focusAfterRender.current = null;
+      element.focus();
+    }
+  }, [fields]);
 
   // Premier élément trouvé dans la carte, selon l'ordre des sélecteurs.
   const findInCard = (fieldKey: string, selectors: string[]) => {
@@ -66,7 +78,7 @@ export function SongSectionsEditor() {
   // Ajout : React Hook Form donne le focus au texte de la nouvelle section.
   const addSection = (type: 'couplet' | 'refrain') => {
     append(createEmptySection(type));
-    setAnnouncement(
+    announce(
       `${SECTION_TYPE_LABELS[type]} ajouté en position ${fields.length + 1}.`,
     );
   };
@@ -79,9 +91,7 @@ export function SongSectionsEditor() {
     focusAfterRender.current = () =>
       findInCard(fieldKey, to < from ? [UP, DOWN] : [DOWN, UP]);
     move(from, to);
-    setAnnouncement(
-      `Section déplacée en position ${to + 1} sur ${fields.length}.`,
-    );
+    announce(`Section déplacée en position ${to + 1} sur ${fields.length}.`);
   };
 
   // Le focus passe au texte de la section voisine, ou à « + Couplet » quand
@@ -93,7 +103,7 @@ export function SongSectionsEditor() {
       ? () => findInCard(neighbor.id, [TEXT])
       : () => addButtonRef.current;
     remove(index);
-    setAnnouncement(
+    announce(
       `Section ${index + 1} supprimée. ${getSectionCountLabel(fields.length - 1)}.`,
     );
   };
@@ -153,7 +163,10 @@ export function SongSectionsEditor() {
         </Button>
       </div>
       <p role="status" className="sr-only">
-        {announcement}
+        {announcement.text}
+        {/* Espace insécable une annonce sur deux : le texte change même quand
+            la phrase est la même, la zone est relue. */}
+        {announcement.tick % 2 === 0 ? '' : ' '}
       </p>
     </section>
   );

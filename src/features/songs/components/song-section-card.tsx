@@ -4,10 +4,11 @@ import { useFormState, useWatch } from 'react-hook-form';
 import { FormTextarea } from '@/components/common/form-textarea';
 import { SegmentedControl } from '@/components/common/segmented-control';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
 import { useSongForm } from '../hooks/use-song-form';
-import { SECTION_TYPE_OPTIONS } from '../sections';
+import { SECTION_TYPE_OPTIONS, parseSectionNumber } from '../sections';
 import { DeleteSectionDialog } from './delete-section-dialog';
 
 type SongSectionCardProps = {
@@ -25,7 +26,9 @@ type SongSectionCardProps = {
 // texte multiligne redimensionnable. Le refrain est mis en valeur (fond bleu
 // clair, texte en gras). « Supprimer » n'est pas sur la maquette : trois
 // boutons de 44 px ne tiennent pas dans l'en-tête à 390 px, il est donc sous
-// le texte, avec sa confirmation.
+// le texte, avec sa confirmation. Le champ « Numéro » (facultatif, 1 à 999)
+// n'y est pas non plus : le back garde le numéro saisi sans jamais le calculer,
+// il doit donc être visible pour que l'admin le corrige après un déplacement.
 export function SongSectionCard({
   fieldKey,
   index,
@@ -37,10 +40,12 @@ export function SongSectionCard({
   const type = useWatch({ control, name: `sections.${index}.type` });
   const { errors } = useFormState({
     control,
-    name: `sections.${index}.text`,
+    name: [`sections.${index}.text`, `sections.${index}.number`],
   });
   const position = index + 1;
   const isChorus = type === 'refrain';
+  const numberError = errors.sections?.[index]?.number?.message;
+  const numberErrorId = `${fieldKey}-number-error`;
 
   return (
     <li
@@ -105,7 +110,32 @@ export function SongSectionCard({
           {...register(`sections.${index}.text`)}
         />
       </div>
-      <div className="mt-1 flex justify-end">
+      <div className="mt-1 flex items-start justify-between gap-3">
+        <div>
+          <label className="flex items-center gap-2 text-base text-muted-foreground">
+            <span>Numéro</span>
+            <Input
+              inputMode="numeric"
+              autoComplete="off"
+              aria-label={`Numéro de la section ${position} (facultatif)`}
+              aria-invalid={numberError ? true : undefined}
+              aria-describedby={numberError ? numberErrorId : undefined}
+              className="h-11 w-20 rounded-xl px-3 text-center text-base md:text-base"
+              {...register(`sections.${index}.number`, {
+                setValueAs: parseSectionNumber,
+              })}
+            />
+          </label>
+          {numberError ? (
+            <p
+              id={numberErrorId}
+              role="alert"
+              className="mt-1 text-sm text-destructive"
+            >
+              {numberError}
+            </p>
+          ) : null}
+        </div>
         <DeleteSectionDialog
           position={position}
           onConfirm={() => onRemove(index)}

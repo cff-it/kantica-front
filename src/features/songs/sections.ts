@@ -17,10 +17,10 @@ export const SECTION_TYPE_LABELS: Record<SectionType, string> = {
 };
 
 // Valeurs de départ du formulaire : les sections du cantique, dans l'ordre de
-// leur position. L'identifiant (`section_id`) et le numéro saisi (`number`)
-// ne sont pas affichés mais voyagent avec la section : le PUT remplace la
-// liste, et une section renvoyée sans `id` serait recréée au lieu d'être mise
-// à jour, un `number` omis serait effacé.
+// leur position. L'identifiant (`section_id`) n'est pas affiché mais voyage
+// avec la section : le PUT remplace la liste, et une section renvoyée sans
+// `id` serait recréée au lieu d'être mise à jour. Le numéro (`number`) est
+// affiché dans le champ « Numéro » : un numéro omis serait effacé.
 export function getSectionsDefaults(
   sections: SongSection[] = [],
 ): SongSectionInput[] {
@@ -53,6 +53,26 @@ export function toSectionsPayload(
     number,
     text,
   }));
+}
+
+// Valeur du champ « Numéro » : vide, pas de numéro (`null`) ; sinon le nombre
+// lu. Une saisie qui n'est pas un nombre reste du texte : le schéma la refuse
+// (« Numéro de 1 à 999. ») et le champ la garde telle quelle, au lieu de
+// l'effacer ou d'afficher « NaN » quand la carte est déplacée.
+export function parseSectionNumber(value: unknown): number | string | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  const text = String(value).trim();
+
+  if (text === '') {
+    return null;
+  }
+
+  const number = Number(text);
+
+  return Number.isNaN(number) ? text : number;
 }
 
 // « 0 section », « 1 section », « 3 sections » : le pluriel dès deux.
