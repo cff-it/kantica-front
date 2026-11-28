@@ -56,7 +56,9 @@ export function toSectionsPayload(
 }
 
 // Valeur du champ « Numéro » : vide, pas de numéro (`null`) ; sinon le nombre
-// lu. Une saisie qui n'est pas un nombre reste du texte : le schéma la refuse
+// lu. Seuls les chiffres sont convertis : `Number()` accepterait aussi `0x10`
+// (16) ou `1e2` (100), et le numéro envoyé différerait de celui affiché. Toute
+// autre saisie (« abc », « 1,5 », « -2 ») reste du texte : le schéma la refuse
 // (« Numéro de 1 à 999. ») et le champ la garde telle quelle, au lieu de
 // l'effacer ou d'afficher « NaN » quand la carte est déplacée.
 export function parseSectionNumber(value: unknown): number | string | null {
@@ -70,9 +72,7 @@ export function parseSectionNumber(value: unknown): number | string | null {
     return null;
   }
 
-  const number = Number(text);
-
-  return Number.isNaN(number) ? text : number;
+  return /^\d+$/.test(text) ? Number(text) : text;
 }
 
 // « 0 section », « 1 section », « 3 sections » : le pluriel dès deux.

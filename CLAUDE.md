@@ -847,7 +847,8 @@ il reste le thème, voir « Écarts »).
   le renuméroter. Un numéro caché deviendrait faux dès qu'on déplace une carte ou qu'on change son type : il est donc
   affiché, sous le texte de chaque carte, et l'admin le corrige. Facultatif ; entier de 1 à 999 comme le back, message
   « Numéro de 1 à 999. » sous le champ (`sectionNumberSchema`, `parseSectionNumber` de `sections.ts` : vide donne `null`,
-  une saisie illisible reste du texte et est refusée au lieu d'être effacée). Changer le type ou l'ordre ne touche pas
+  seuls les chiffres sont convertis ; `0x10`, `1e2`, `1,5` ou « abc » restent du texte et sont refusés au lieu d'être
+  lus autrement ou effacés). Changer le type ou l'ordre ne touche pas
   au numéro. Écart avec les maquettes : elles n'ont pas ce champ.
 - **Écarts des sections** : « Supprimer » (avec confirmation, `DeleteSectionDialog`) est sous le texte de
   chaque carte, car la maquette n'a pas de suppression et trois boutons de 44 px ne tiennent pas dans l'en-tête à
@@ -884,7 +885,9 @@ il reste le thème, voir « Écarts »).
   la fiche, sans feuille. 401 avec un formulaire modifié (jeton rendu invalide dans le navigateur puis
   « Enregistrer ») : arrivée sur `/login`, aucune feuille. **Non vérifié** : le geste « retour » du navigateur d'un
   téléphone (le routeur traite le même événement, `history.back()` n'a été essayé que sans saisie), et le réarmement
-  d'une navigation sans effet (déduit du code, pas reproduit à l'écran).
+  d'une navigation sans effet (déduit du code, pas reproduit à l'écran). Le long libellé « Quitter sans enregistrer »
+  tient sur une ligne jusqu'à 320 px (texte de 162 px dans un bouton de 272 px, 56 px de haut). Numéro de section :
+  `0x10`, `1e2`, `1,5`, `-2`, `0` et `1000` refusés, `12` et `007` acceptés.
 
 ---
 
