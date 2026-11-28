@@ -21,6 +21,7 @@ import {
   RolesPage,
 } from '@/features/members';
 import { ProfilePage } from '@/features/profile';
+import { SongsListPage } from '@/features/songs';
 import { paths } from '@/lib/paths';
 
 import {
@@ -100,9 +101,29 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <Navigate to={paths.home} replace /> },
           {
+            // Répertoire (KAN-18) : tous les rôles, page d'accueil.
             path: paths.songs,
-            element: <ComingSoon title="Répertoire" />,
+            element: <SongsListPage />,
             handle: { title: 'Répertoire' },
+          },
+          {
+            // Ajout d'un cantique : écran de KAN-13, réservé à l'admin, ouvert
+            // par « + Ajouter » du répertoire. Avant `paths.song` (`:id`).
+            element: <RequireRole roles={['admin']} />,
+            children: [
+              {
+                path: paths.songNew,
+                element: <ComingSoon title="Ajouter un cantique" />,
+                handle: { title: 'Ajouter un cantique' },
+              },
+            ],
+          },
+          {
+            // Fiche d'un cantique : écran de KAN-25, ouvert depuis une ligne
+            // du répertoire.
+            path: paths.song,
+            element: <ComingSoon title="Fiche du cantique" />,
+            handle: { title: 'Fiche du cantique' },
           },
           {
             path: paths.masses,

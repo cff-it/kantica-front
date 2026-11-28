@@ -1,5 +1,4 @@
-import { isAxiosError } from 'axios';
-
+import { isForbiddenError } from '@/lib/api-errors';
 import { getValidationMessage } from '@/lib/form-errors';
 import { findVoice } from '@/lib/voices';
 import type { User, Voice } from '@/types';
@@ -53,17 +52,6 @@ export function getExportScopeLabel(
 // sinon `undefined` (la page affiche « Membre introuvable » sans requête).
 export function parseMemberId(value: string | undefined): number | undefined {
   return value && /^[1-9]\d*$/.test(value) ? Number(value) : undefined;
-}
-
-// Le back répond 404 pour un membre inconnu.
-export function isNotFoundError(error: unknown): boolean {
-  return isAxiosError(error) && error.response?.status === 404;
-}
-
-// Le back répond 403 quand le rôle ne suffit pas, ou (rapport d'import) quand
-// l'import a été lancé par quelqu'un d'autre qu'un admin.
-export function isForbiddenError(error: unknown): boolean {
-  return isAxiosError(error) && error.response?.status === 403;
 }
 
 // Prénom et nom affichés : la fiche (prénoms joints) prime sur le compte.

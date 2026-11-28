@@ -1,11 +1,11 @@
 import { PageHeader } from '@/components/common/page-header';
+import { SearchField } from '@/components/common/search-field';
 
 import { AddMemberLink } from '../components/add-member-link';
 import { ExportMembersDialog } from '../components/export-members-dialog';
 import { ImportMembersLink } from '../components/import-members-link';
 import { MemberRolesLink } from '../components/member-roles-link';
 import { MembersResults } from '../components/members-results';
-import { MembersSearchField } from '../components/members-search-field';
 import { VoiceFilter } from '../components/voice-filter';
 import { useMembers } from '../hooks/use-members';
 import { useMembersFilters } from '../hooks/use-members-filters';
@@ -37,9 +37,12 @@ export function MembersListPage() {
         }
       />
       <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-        <MembersSearchField
+        <SearchField
           value={filters.search}
           onChange={filters.setSearch}
+          placeholder="Rechercher un nom"
+          label="Rechercher un nom"
+          className="lg:w-80"
         />
         <VoiceFilter
           value={filters.voice}

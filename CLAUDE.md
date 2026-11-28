@@ -48,7 +48,7 @@ src/
 │   │   └── index.ts          # API publique de la feature
 │   ├── members/              # Lot 1 : liste, fiche, export, import Excel ; « Gestion des rôles » (KAN-63)
 │   ├── profile/              # « Mon profil » (identité, réglages, déconnexion)
-│   ├── songs/                # Répertoire des cantiques (lot ultérieur)
+│   ├── songs/                # Répertoire : liste et recherche des cantiques (KAN-18)
 │   ├── masses/               # Messes + PPTX (lot ultérieur)
 │   └── attendance/           # Présences + classements (lot ultérieur)
 │
@@ -65,11 +65,13 @@ src/
 │                             # à précision : année, mois ou jour), PhoneField (téléphone : drapeau, pays et numéro
 │                             # national, valeur en E.164), PhoneListField (plusieurs numéros, un par ligne),
 │                             # InitialsAvatar (pastille d'initiales), ListPagination (pages précédente et
-│                             # suivante des listes), RoleBadge (badge du rôle), ThemeSwitch (interrupteur
+│                             # suivante des listes), SearchField (recherche des listes : membres, rôles,
+│                             # répertoire), RoleBadge (badge du rôle), ThemeSwitch (interrupteur
 │                             # « Mode sombre » du Profil)
 │
 ├── lib/
 │   ├── api-client.ts         # Instance Axios unique (jeton Bearer, intercepteur 401)
+│   ├── api-errors.ts         # isNotFoundError(), isForbiddenError() : 404 et 403 de l'API (membres, répertoire)
 │   ├── auth-token.ts         # Jeton Bearer : lecture, écriture, effacement (localStorage)
 │   ├── download-file.ts      # downloadBlob() et nom de fichier de Content-Disposition (exports)
 │   ├── clipboard.ts          # copyText() : copie dans le presse-papiers, avec repli
@@ -88,7 +90,8 @@ src/
 │   └── utils.ts              # cn(), formatage de dates et d'heures (formatShortDate, formatTime)
 │
 ├── assets/brand/             # Logo et filigranes (PNG transparents, voir Points d'attention)
-├── hooks/                    # Hooks génériques sans métier (useDebounce, useMediaQuery, useRouteTitle)
+├── hooks/                    # Hooks génériques sans métier (useDebounce, useMediaQuery, useRouteTitle,
+│                             # usePageInRange : retour à la dernière page d'une liste qui a rétréci)
 └── types/                    # Types partagés : User, Role, Voice, Paginated<T>
 ```
 
@@ -839,6 +842,64 @@ Réglages). Retour : « Membres ». Le code est dans `features/members` (API `ge
   sombre) : page 2 de « page », recherche effacée puis retapée, retour en page 1 (l'ancien hook rendait la page 2).
   **Non vérifié** à l'écran : le 403.
 
+## Répertoire
+
+Route `/songs` (`paths.songs`, `SongsListPage` de `features/songs`) : premier onglet et page d'accueil après la connexion,
+pour tous les rôles. Maquettes `03-Repertoire-et-voix/{mobile,web}/01-Repertoire`, ticket KAN-18 (US-04).
+
+- **Back** (KAN-18) : `GET /api/songs?search=&page=`, 20 cantiques par page triés par titre (sans casse ni accents),
+  recherche dans le titre et l'auteur. Lignes au format de `SongListItemResource` (type `SongListItem` : `id`,
+  `title`, `author`, `reference`, ce que la liste affiche ; le cantique complet sera lu par la fiche) ;
+  `meta.songs_count` (« 13 cantiques ») porte sur tout le répertoire, `meta.total` suit la recherche.
+- **En-tête** : « Répertoire », « N cantiques », et le bouton « + Ajouter » sous `lg`, « + Ajouter un cantique » dès `lg`
+  (un seul lien, nom accessible « Ajouter un cantique » : la fin du libellé est en `max-lg:sr-only`). Bouton **réservé à
+  l'admin** (`RoleGuard`, KAN-13) ; il mène à `/songs/new` (`paths.songNew`, sous `RequireRole` admin), un
+  `<ComingSoon />` en attendant l'écran de KAN-13.
+- **Recherche** « Titre ou auteur » : `SearchField` de `components/common/` (aussi utilisé par les membres et la gestion
+  des rôles), retardée. Chaque nouvelle recherche ramène à la page 1, même quand elle revient à une valeur déjà vue
+  (« a » en page 3, effacée, puis « a » de nouveau) : `useSongsFilters` garde la recherche pour laquelle la page a été
+  choisie et remet la page à 1 pendant le rendu quand elle change (motif React « ajuster un état quand une valeur
+  change », accepté par les règles des hooks), sans effet ni requête pour l'ancienne page. `useMembersFilters` et
+  `useUsersFilters` suivent le même motif.
+- **Page devenue trop grande** (relevé par la revue de KAN-18) : si des cantiques disparaissent pendant qu'on est en
+  page 3, le back répond `data: []` avec `current_page > last_page`. `usePageInRange` (`hooks/`, générique) ramène
+  alors la page à la dernière pendant le rendu de `SongsListPage`, et `SongsResults` affiche « Chargement du
+  répertoire… » le temps que cette page arrive (liste vide mais `meta.total > 0`), au lieu d'un faux « Aucun
+  cantique ». Les listes des membres et des rôles ne l'utilisent pas encore. Cas typique : des cantiques supprimés
+  pendant qu'on lit la page 1, puis « Suivant » vers une page 2 qui n'existe plus. La page 1 réaffichée vient du cache :
+  son compteur peut dater de 30 s au plus (`staleTime`), jusqu'à son prochain rechargement. **Vérifié contre le vrai
+  back** (28 cantiques dont 15 temporaires, 10 supprimés par l'API avec le compte admin, puis « Suivant ») à 1440 px
+  en clair et 390 px en sombre : retour en page 1, ni « Aucun cantique » ni écran bloqué. Le rechargement au retour du
+  réseau n'a pas pu être simulé dans le navigateur intégré.
+- **Deux mises en page**, une seule montée (`useMediaQuery`) : lignes sous `lg` (titre en Cormorant Garamond, auteur en
+  dessous, chevron ; séparateurs d'un bord à l'autre de l'écran par `-mx-4`) ; tableau dès `lg` (Titre, Auteur, Réf.,
+  chevron ; le lien du titre couvre la ligne). Un auteur ou une référence absents s'affichent « - » dans le tableau ;
+  sous `lg`, la ligne de l'auteur est omise. Un titre trop long passe à la ligne, même sans espace (`wrap-anywhere`, qui
+  laisse aussi la colonne du tableau se resserrer). Une ligne ouvre `/songs/:id` (`getSongPath`), un `<ComingSoon />`
+  « Fiche du cantique » en attendant KAN-25 (l'onglet Répertoire reste actif). Pagination `ListPagination`, états
+  chargement, liste vide (message différent pendant une recherche) et erreur : « Impossible de charger le répertoire. »
+  avec « Réessayer », ou, pour un 403 (compte sans rôle), « Votre compte n'a pas accès au répertoire. » sans bouton.
+- `useSongs` est en `networkMode: 'always'` : hors ligne, le mode par défaut met la requête en pause et la page d'accueil
+  resterait sur « Chargement du répertoire… » ; ici la requête échoue et l'erreur s'affiche avec « Réessayer ».
+- **Mesures relevées sur les PNG des maquettes** (largeur des textes, position des séparateurs) : titre de page de 36 px
+  sur les deux maquettes, compteur de 16 px, titres des cantiques de 20 px, lignes de 70 px (mobile) et 53 px (web), bouton
+  de 44 px aligné sur le bas du bloc titre. Le tableau web reprend les classes de celui des membres. En-têtes de
+  colonnes en `text-xs`, capitales espacées : la maquette web les dessine en capitales de 8,5 px de haut (17 px sur le
+  PNG @2x), soit du 12 à 13 px ; la règle des 16 px vise le texte courant, pas ces libellés.
+- **Écarts avec les maquettes** : pas encore de thème (pastilles de filtre « Tous, Avent, Noël… », pastille de couleur après
+  l'auteur, colonne Thème) : il arrive avec KAN-23, dont le modèle n'est pas tranché ; « Venez, divin Messie » passe avant
+  « Veni Creator Spiritus » (ordre alphabétique strict, la maquette les inverse). La recherche n'est pas gardée dans l'URL :
+  elle est perdue au retour de la fiche, comme pour la liste des membres.
+- **Vérifié contre le vrai back** (branches `feature/kan-18-repertoire`, base de dev, `SongReferenceSeeder`) à 1440 px et
+  390 px, en clair et en sombre : liste et compteur, recherche (sans accent, en majuscules, mots du titre et de l'auteur),
+  liste vide, une seule requête par recherche, ligne vers la fiche, bouton « + Ajouter » pour l'admin et absent pour un
+  membre (`/songs/new` le renvoie au répertoire), pagination (10 cantiques temporaires ajoutés puis supprimés). La
+  recherche des Membres et de la Gestion des rôles a été revérifiée après le passage à `SearchField`. Après la revue :
+  retour en page 1 quand une recherche revient (« zz » en page 2, effacée puis retapée), titre de 98 caractères sans
+  espace (trois lignes à 390 px, deux dans le tableau à 1440 px, sans défilement), vrai 403 d'un compte sans rôle (rôle
+  retiré puis rendu au compte `membre@scenarios.kantica.test`), « Membre introuvable » toujours affiché après le passage à
+  `lib/api-errors.ts`. **Non vérifié** à l'écran : le hors-ligne (`networkMode: 'always'`).
+
 ## Docker
 
 Fichiers : `Dockerfile` (multi-étapes), `docker-compose.yml`, `nginx.conf`, `.dockerignore`.
@@ -954,3 +1015,7 @@ npm run lint     # ESLint
 4. Lot 2
    - [x] KAN-63 : écran Profil (maquette 06-Profil), « Gestion des rôles » dans Membres et ligne « Rôle » de la
      fiche (voir « Profil », « Gestion des rôles »)
+   - [x] KAN-18 : répertoire (liste, recherche « Titre ou auteur », pagination, « + Ajouter » pour l'admin ; voir
+     « Répertoire »)
+   - [ ] KAN-18 : pastilles de thème (filtres, couleur, colonne Thème), avec KAN-23
+   - [ ] KAN-25 : fiche du cantique (`/songs/:id`, « Bientôt » pour l'instant)
